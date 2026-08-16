@@ -1,7 +1,13 @@
 # WaterFall CHANGELOG
 
 Formát: `X.Y.Z — YYYY-MM-DD`. Aktuální verze je v [`VERSION`](VERSION).
-Git tag odpovídá verzi (`v0.4.5`).
+Git tag odpovídá verzi (`v0.4.6`).
+
+## 0.4.6 — 2026-08-17
+
+- sonda zůstane zelená, dokud tečou čerstvá sweep data (do 3 s);
+- krátký USB glitch se zkusí znovu přečíst, místo okamžitého OFFLINE;
+- rychlejší reconnect; `RF_PROBE_ONLINE` marker jen když opravdu byla offline.
 
 ## 0.4.5 — 2026-08-17
 

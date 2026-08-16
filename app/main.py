@@ -37,7 +37,7 @@ from .rf_analysis import detect_regions
 from .wifi_watch import WifiMonitorWatcher
 
 
-VERSION = "0.4.5"
+VERSION = "0.4.6"
 log = logging.getLogger("waterfall")
 BASE_DIR = Path(__file__).resolve().parent.parent
 STATIC_DIR = BASE_DIR / "app" / "static"
@@ -480,6 +480,39 @@ class ProbeWorker(threading.Thread):
         ser.write((cmd + "\r\n").encode("ascii"))
         ser.flush()
 
+    @staticmethod
+    def _data_fresh(max_age_s: float = 3.0) -> bool:
+        if not state.last_rx_iso:
+            return False
+        try:
+            last = datetime.fromisoformat(state.last_rx_iso)
+            return (datetime.now() - last).total_seconds() <= max_age_s
+        except Exception:
+            return False
+
+    @staticmethod
+    def _transient(exc: BaseException) -> bool:
+        name = type(exc).__name__
+        msg = str(exc).lower()
+        if name in {"SerialTimeoutException", "SerialException"}:
+            return (
+                "returned no data" in msg
+                or "write timeout" in msg
+                or "read failed" in msg
+                or "device disconnected" in msg
+                or "temporarily unavailable" in msg
+            )
+        return False
+
+    def _readline(self, ser: serial.Serial) -> bytes:
+        try:
+            return ser.readline()
+        except Exception as exc:
+            if not self._transient(exc):
+                raise
+            time.sleep(0.05)
+            return ser.readline()
+
     def run(self):
         cfg = CONFIG.get("rf_probe", {})
         if serial is None:
@@ -493,20 +526,32 @@ class ProbeWorker(threading.Thread):
                 found = discover_probe(cfg)
                 port = found["device"]
                 state.probe_port, state.probe_product, state.probe_serial = port, found["product"], found["serial_number"]
-                with serial.Serial(
-                    port, int(cfg.get("baudrate", 115200)), timeout=0.25, write_timeout=2.0,
-                    rtscts=False, dsrdtr=False, xonxoff=False,
-                ) as ser:
+                serial_kwargs = dict(
+                    port=port,
+                    baudrate=int(cfg.get("baudrate", 115200)),
+                    timeout=0.25,
+                    write_timeout=5.0,
+                    rtscts=False,
+                    dsrdtr=False,
+                    xonxoff=False,
+                )
+                try:
+                    ser_ctx = serial.Serial(**serial_kwargs, exclusive=True)
+                except (TypeError, ValueError):
+                    ser_ctx = serial.Serial(**serial_kwargs)
+                with ser_ctx as ser:
                     try: ser.dtr = True
                     except Exception: pass
                     try: ser.rts = False
                     except Exception: pass
                     time.sleep(max(0.1, int(cfg.get("connect_delay_ms", 350)) / 1000.0))
                     ser.reset_input_buffer()
+                    was_offline = not state.probe_connected
                     state.probe_connected = True
                     state.probe_error = ""
                     broadcast_state()
-                    emit_marker("RF_PROBE_ONLINE", f"{port} {found['product']}".strip(), "NRF52840", serial=found["serial_number"])
+                    if was_offline:
+                        emit_marker("RF_PROBE_ONLINE", f"{port} {found['product']}".strip(), "NRF52840", serial=found["serial_number"])
                     self._send(ser, "PING")
                     time.sleep(0.05)
                     self._send(ser, "INFO")
@@ -517,7 +562,7 @@ class ProbeWorker(threading.Thread):
                     while not self.stop_event.is_set():
                         for cmd in self.commands():
                             self._send(ser, cmd)
-                        raw = ser.readline()
+                        raw = self._readline(ser)
                         if not raw:
                             continue
                         line = raw.decode("utf-8", errors="replace").strip()
@@ -557,14 +602,15 @@ class ProbeWorker(threading.Thread):
                         else:
                             hub.send({"type": "log", "line": line})
             except Exception as exc:
-                state.probe_connected = False
-                state.scan_enabled = False
-                state.watch_enabled = False
                 state.probe_error = f"{type(exc).__name__}: {exc}"
                 log.warning("PROBE DROP %s", state.probe_error)
                 hub.send({"type": "log", "line": f"PROBE DROP {state.probe_error}"})
+                if not self._data_fresh(3.0):
+                    state.probe_connected = False
+                    state.scan_enabled = False
+                    state.watch_enabled = False
                 broadcast_state()
-                time.sleep(1.5)
+                time.sleep(0.4 if self._transient(exc) or self._data_fresh(3.0) else 1.5)
 
 
 class MockWorker(threading.Thread):

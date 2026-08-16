@@ -3,7 +3,7 @@
 Firmware **0.7.2 nech tak, jak je**, pokud spektrum žije (sweep ~2 Hz, data age < 1 s, vidíš regiony).
 Blikání znamená: sériové spojení se shodí a WaterFall se po **1,5 s** znovu připojí.
 
-`PROBE OFFLINE` se nastaví jen při výjimce v RF Probe workeru.
+Od 0.4.6 má odznak zůstat **zelený**, dokud tečou sweep data (stáří do 3 s). Červená je až když data opravdu přestanou. Krátký USB glitch se zkusí znovu přečíst.
 
 | Co vidíš | Význam |
 |---|---|

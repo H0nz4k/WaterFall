@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>WaterFall 0.4.5</title>
+<title>WaterFall 0.4.6</title>
 <style>
 :root{color-scheme:dark;--bg:#071019;--panel:#0c1722;--panel2:#101d29;--border:#263746;--text:#e8f0f7;--muted:#8ca1b4;--accent:#46c7ff;--good:#5ce08a;--warn:#ffd166;--bad:#ff6b6b;--purple:#c792ea}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,Segoe UI,Arial,sans-serif;font-size:13px}
@@ -54,7 +54,7 @@ tr.clickable{cursor:pointer}tr.clickable:hover{background:#132536}tr.selected{ba
 <header>
   <div class="top">
     <div>
-      <h1>WaterFall <span>v0.4.5</span></h1>
+      <h1>WaterFall <span>v0.4.6</span></h1>
       <div class="sub">Co se děje v pásmu 2,4 GHz · špičky · capture</div>
     </div>
     <div class="status">
@@ -629,8 +629,10 @@ tr.clickable{cursor:pointer}tr.clickable:hover{background:#132536}tr.selected{ba
   }
   function onState(s) {
     state = s;
-    $("probeBadge").textContent = s.probe_connected ? "Sonda online" : "Sonda offline";
-    $("probeBadge").className = "badge " + (s.probe_connected ? "ok" : "bad");
+    const ageS = lastData ? (Date.now() - lastData) / 1000 : 99;
+    const probeLive = !!(s.probe_connected || ageS < 3);
+    $("probeBadge").textContent = probeLive ? "Sonda online" : "Sonda offline";
+    $("probeBadge").className = "badge " + (probeLive ? "ok" : "bad");
     $("probeBadge").title = s.probe_error || (s.probe_port ? s.probe_port : "");
     if (s.probe_error && s.probe_error !== lastProbeErr) log("PROBE " + s.probe_error);
     lastProbeErr = s.probe_error || "";
