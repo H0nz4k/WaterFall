@@ -1,7 +1,13 @@
 # WaterFall CHANGELOG
 
 Formát: `X.Y.Z — YYYY-MM-DD`. Aktuální verze je v [`VERSION`](VERSION).
-Git tag odpovídá verzi (`v0.4.4`).
+Git tag odpovídá verzi (`v0.4.5`).
+
+## 0.4.5 — 2026-08-17
+
+- `push_to_pi.sh` nahraje WaterFall z PC na Raspberry přes SSH a spustí upgrade;
+- `install.sh --update` kopíruje soubory a restartuje službu bez `apt` a bez mazání venv;
+- `config.json` na Pi se nepřepisuje.
 
 ## 0.4.4 — 2026-08-17
 

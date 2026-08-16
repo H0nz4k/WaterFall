@@ -5,27 +5,60 @@ APP_DIR=/opt/waterfall
 DATA_ROOT=/var/lib/waterfall
 SERVICE_USER="${SUDO_USER:-$USER}"
 SOURCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+MODE="full"
+if [[ "${1:-}" == "--update" ]]; then
+  MODE="update"
+fi
 
-if [[ $EUID -ne 0 ]]; then echo "Spusť přes sudo: sudo ./install.sh"; exit 1; fi
+VERSION="0.4.5"
+if [[ -f "$SOURCE_DIR/VERSION" ]]; then
+  VERSION="$(tr -d '[:space:]' < "$SOURCE_DIR/VERSION")"
+fi
 
-echo "== WaterFall v0.4.3 =="
+if [[ $EUID -ne 0 ]]; then echo "Spusť přes sudo: sudo ./install.sh [--update]"; exit 1; fi
+
+echo "== WaterFall v${VERSION} (${MODE}) =="
 echo "User: $SERVICE_USER"
-export DEBIAN_FRONTEND=noninteractive
-apt update
-apt install -y python3 python3-venv python3-pip python3-gpiozero bluez iw tshark
+echo "Zdroj: $SOURCE_DIR"
+
+if [[ "$MODE" == "full" ]]; then
+  export DEBIAN_FRONTEND=noninteractive
+  apt update
+  apt install -y python3 python3-venv python3-pip python3-gpiozero bluez iw tshark
+fi
+
 mkdir -p "$APP_DIR" "$DATA_ROOT/captures" "$DATA_ROOT/experiments" "$DATA_ROOT/capture/exports" "$DATA_ROOT/pcap"
-cp -a "$SOURCE_DIR/app" "$SOURCE_DIR/requirements.txt" "$SOURCE_DIR/config.example.json" "$SOURCE_DIR/run_server.py" "$APP_DIR/"
+
+copy_if_present() {
+  local src="$1"
+  local dest="$2"
+  if [[ -e "$src" ]]; then
+    cp -a "$src" "$dest"
+  fi
+}
+
+rm -rf "$APP_DIR/app"
+copy_if_present "$SOURCE_DIR/app" "$APP_DIR/app"
+copy_if_present "$SOURCE_DIR/requirements.txt" "$APP_DIR/requirements.txt"
+copy_if_present "$SOURCE_DIR/config.example.json" "$APP_DIR/config.example.json"
+copy_if_present "$SOURCE_DIR/run_server.py" "$APP_DIR/run_server.py"
+copy_if_present "$SOURCE_DIR/VERSION" "$APP_DIR/VERSION"
+copy_if_present "$SOURCE_DIR/watch_probe_state.sh" "$APP_DIR/watch_probe_state.sh"
+copy_if_present "$SOURCE_DIR/TROUBLESHOOTING.md" "$APP_DIR/TROUBLESHOOTING.md"
+chmod +x "$APP_DIR/watch_probe_state.sh" 2>/dev/null || true
 
 if [[ ! -f "$APP_DIR/config.json" ]]; then
   cp "$APP_DIR/config.example.json" "$APP_DIR/config.json"
   echo "Vytvořen nový $APP_DIR/config.json"
 else
-  echo "Existující $APP_DIR/config.json zachován. POZOR: po upgrade 0.3 -> 0.4 doplň sekce capture/analysis/ble_observer/wifi_monitor podle config.example.json."
+  echo "Existující $APP_DIR/config.json zachován."
 fi
 
-rm -rf "$APP_DIR/.venv"
-python3 -m venv --system-site-packages "$APP_DIR/.venv"
-"$APP_DIR/.venv/bin/pip" install --upgrade pip
+if [[ "$MODE" == "full" || ! -x "$APP_DIR/.venv/bin/python" ]]; then
+  rm -rf "$APP_DIR/.venv"
+  python3 -m venv --system-site-packages "$APP_DIR/.venv"
+  "$APP_DIR/.venv/bin/pip" install --upgrade pip
+fi
 "$APP_DIR/.venv/bin/pip" install -r "$APP_DIR/requirements.txt"
 
 ELATOOL_CANDIDATES=("/home/$SERVICE_USER/OpenVusion/tools/ElaTool" "$SOURCE_DIR/../../ElaTool")
@@ -44,7 +77,7 @@ done
 
 cat > /etc/systemd/system/waterfall.service <<EOF
 [Unit]
-Description=WaterFall v0.4.3 RF Capture Center
+Description=WaterFall v${VERSION} RF Capture Center
 After=network.target bluetooth.target
 Wants=network.target
 
@@ -70,9 +103,11 @@ systemctl enable waterfall.service
 systemctl restart waterfall.service
 
 echo
-echo "Instalace / update hotový."
+echo "Instalace / update hotový (v${VERSION})."
 echo "Config: $APP_DIR/config.json"
 echo "Stav: sudo systemctl status waterfall --no-pager"
 echo "Log:  journalctl -u waterfall -f"
 echo "Web:  http://<IP_RPI>:8088/"
-echo "Po prvním přidání do dialout/gpio/bluetooth doporučuji reboot."
+if [[ "$MODE" == "full" ]]; then
+  echo "Po prvním přidání do dialout/gpio/bluetooth doporučuji reboot."
+fi
