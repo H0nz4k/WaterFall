@@ -19,7 +19,19 @@ SerialTimeoutException: Write timeout
 OSError: [Errno 5] Input/output error
 ```
 
-Write timeout / USB disconnect může souviset s tím, že 0.7.2 posílá celý `SWEEP` přes `uart_poll_out()` byte po bytu (dlouhá řádka, ~2× za sekundu). To se nemění, dokud není potvrzený `probe_error`.
+Typický log při reconnect bouři:
+
+```text
+ERR unknown command: ,2431:-105,2432::PING
+SerialException: device reports readiness to read but returned no data
+  (device disconnected or multiple access on port?)
+```
+
+Linux CDC má po `open()` chvíli zapnuté ECHO. Zbytek `SWEEP` se odrazí zpět do firmware a slepí se s `PING`. Zavření portu shodí DTR, firmware zastaví SCAN, WaterFall se znovu připojí a pošle další `PING`. Od 0.4.7 se port kvůli tomuto glitchi nezavírá a ECHO se vypne hned.
+
+Na Raspberry taky často **ModemManager** sahá na `ttyACM`. `install.sh` od 0.4.7 dává udev pravidlo `ID_MM_DEVICE_IGNORE` pro VID/PID `2fe3:0001`.
+
+Write timeout může souviset i s tím, že 0.7.2 posílá celý `SWEEP` přes `uart_poll_out()` byte po bytu. To ve firmware zatím neměň, pokud spektrum žije.
 
 ---
 

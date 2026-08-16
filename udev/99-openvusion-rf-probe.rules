@@ -1,0 +1,3 @@
+# OpenVusion RF Probe — ModemManager must not open the CDC port.
+# "multiple access on port" / echoed SWEEP+PING is a typical result.
+ACTION=="add", SUBSYSTEM=="tty", ATTRS{idVendor}=="2fe3", ATTRS{idProduct}=="0001", ENV{ID_MM_DEVICE_IGNORE}="1", ENV{ID_MM_PORT_IGNORE}="1"

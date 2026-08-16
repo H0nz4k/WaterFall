@@ -1,7 +1,14 @@
 # WaterFall CHANGELOG
 
 Formát: `X.Y.Z — YYYY-MM-DD`. Aktuální verze je v [`VERSION`](VERSION).
-Git tag odpovídá verzi (`v0.4.6`).
+Git tag odpovídá verzi (`v0.4.7`).
+
+## 0.4.7 — 2026-08-17
+
+- po krátkém USB glitchi se port **nezavírá** (zavření shodilo DTR, firmware přestal SCAN a další `PING` se slepil se `SWEEP`);
+- po open() se vypne Linux tty ECHO/HUPCL;
+- `PING`/`SCAN START` jen když firmware/scan ještě neběží;
+- udev pravidlo, aby ModemManager nesahal na port `2fe3:0001`.
 
 ## 0.4.6 — 2026-08-17
 

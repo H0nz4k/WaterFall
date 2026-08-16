@@ -37,7 +37,7 @@ from .rf_analysis import detect_regions
 from .wifi_watch import WifiMonitorWatcher
 
 
-VERSION = "0.4.6"
+VERSION = "0.4.7"
 log = logging.getLogger("waterfall")
 BASE_DIR = Path(__file__).resolve().parent.parent
 STATIC_DIR = BASE_DIR / "app" / "static"
@@ -481,6 +481,46 @@ class ProbeWorker(threading.Thread):
         ser.flush()
 
     @staticmethod
+    def _tune_tty(ser: serial.Serial):
+        """Linux CDC often starts with ECHO/HUPCL on. That echoes SWEEP back
+        into the firmware parser and looks like: ',2432:-105::PING'."""
+        try:
+            import termios
+            attrs = termios.tcgetattr(ser.fd)
+            iflag, oflag, cflag, lflag, ispeed, ospeed, cc = attrs
+            lflag &= ~(
+                termios.ECHO | termios.ECHOE | termios.ECHOK |
+                termios.ECHONL | termios.ICANON | termios.ISIG
+            )
+            hupcl = getattr(termios, "HUPCL", 0)
+            if hupcl:
+                cflag &= ~hupcl
+            termios.tcsetattr(
+                ser.fd, termios.TCSANOW,
+                [iflag, oflag, cflag, lflag, ispeed, ospeed, cc],
+            )
+        except Exception:
+            pass
+        try:
+            if not ser.dtr:
+                ser.dtr = True
+        except Exception:
+            pass
+        try:
+            ser.reset_input_buffer()
+            ser.reset_output_buffer()
+        except Exception:
+            pass
+
+    @staticmethod
+    def _sweep_fragment(line: str) -> bool:
+        if line.startswith("SWEEP,") or line.startswith("BURST,"):
+            return False
+        if line.startswith(","):
+            return True
+        return bool(re.match(r"^\d{4}:-?\d", line))
+
+    @staticmethod
     def _data_fresh(max_age_s: float = 3.0) -> bool:
         if not state.last_rx_iso:
             return False
@@ -508,10 +548,11 @@ class ProbeWorker(threading.Thread):
         try:
             return ser.readline()
         except Exception as exc:
-            if not self._transient(exc):
-                raise
-            time.sleep(0.05)
-            return ser.readline()
+            if self._transient(exc):
+                # Don't close the port. Closing drops DTR, firmware stops
+                # SCAN, and the next PING gets glued onto a leftover SWEEP.
+                return b""
+            raise
 
     def run(self):
         cfg = CONFIG.get("rf_probe", {})
@@ -540,22 +581,20 @@ class ProbeWorker(threading.Thread):
                 except (TypeError, ValueError):
                     ser_ctx = serial.Serial(**serial_kwargs)
                 with ser_ctx as ser:
-                    try: ser.dtr = True
-                    except Exception: pass
-                    try: ser.rts = False
-                    except Exception: pass
+                    self._tune_tty(ser)
                     time.sleep(max(0.1, int(cfg.get("connect_delay_ms", 350)) / 1000.0))
-                    ser.reset_input_buffer()
+                    self._tune_tty(ser)
                     was_offline = not state.probe_connected
                     state.probe_connected = True
                     state.probe_error = ""
                     broadcast_state()
                     if was_offline:
                         emit_marker("RF_PROBE_ONLINE", f"{port} {found['product']}".strip(), "NRF52840", serial=found["serial_number"])
-                    self._send(ser, "PING")
-                    time.sleep(0.05)
-                    self._send(ser, "INFO")
-                    if cfg.get("auto_scan", True):
+                    if not state.firmware:
+                        self._send(ser, "PING")
+                        time.sleep(0.05)
+                        self._send(ser, "INFO")
+                    if cfg.get("auto_scan", True) and not state.scan_enabled and not state.watch_enabled:
                         time.sleep(0.15)
                         self._send(ser, "SCAN START")
 
@@ -566,7 +605,7 @@ class ProbeWorker(threading.Thread):
                         if not raw:
                             continue
                         line = raw.decode("utf-8", errors="replace").strip()
-                        if not line:
+                        if not line or self._sweep_fragment(line):
                             continue
                         state.last_line = line
                         sweep = self.parse_sweep(line)

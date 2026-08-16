@@ -45,7 +45,16 @@ copy_if_present "$SOURCE_DIR/run_server.py" "$APP_DIR/run_server.py"
 copy_if_present "$SOURCE_DIR/VERSION" "$APP_DIR/VERSION"
 copy_if_present "$SOURCE_DIR/watch_probe_state.sh" "$APP_DIR/watch_probe_state.sh"
 copy_if_present "$SOURCE_DIR/TROUBLESHOOTING.md" "$APP_DIR/TROUBLESHOOTING.md"
+copy_if_present "$SOURCE_DIR/udev" "$APP_DIR/udev"
 chmod +x "$APP_DIR/watch_probe_state.sh" 2>/dev/null || true
+
+UDEV_SRC="$SOURCE_DIR/udev/99-openvusion-rf-probe.rules"
+if [[ -f "$UDEV_SRC" ]]; then
+  cp "$UDEV_SRC" /etc/udev/rules.d/99-openvusion-rf-probe.rules
+  udevadm control --reload-rules 2>/dev/null || true
+  udevadm trigger 2>/dev/null || true
+  echo "udev: ModemManager ignoruje OpenVusion RF Probe (2fe3:0001)."
+fi
 
 if [[ ! -f "$APP_DIR/config.json" ]]; then
   cp "$APP_DIR/config.example.json" "$APP_DIR/config.json"
