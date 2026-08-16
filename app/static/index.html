@@ -1,0 +1,1028 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WaterFall 0.4.3</title>
+<style>
+:root{color-scheme:dark;--bg:#071019;--panel:#0c1722;--panel2:#101d29;--border:#263746;--text:#e8f0f7;--muted:#8ca1b4;--accent:#46c7ff;--good:#5ce08a;--warn:#ffd166;--bad:#ff6b6b;--purple:#c792ea}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,Segoe UI,Arial,sans-serif;font-size:13px}
+header{position:sticky;top:0;z-index:40;background:rgba(7,16,25,.98);border-bottom:1px solid var(--border)}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 14px 6px}
+h1{font-size:18px;margin:0}h1 span{color:var(--muted);font-size:11px;font-weight:500}.sub{color:var(--muted);font-size:11px;margin-top:2px}
+.status{display:flex;gap:5px;flex-wrap:wrap}.badge{border:1px solid var(--border);border-radius:999px;padding:4px 8px;font-size:10px;background:var(--panel)}.ok{color:var(--good)}.bad{color:var(--bad)}.warn{color:var(--warn)}
+.toolbar{display:flex;gap:8px;align-items:end;flex-wrap:wrap;padding:6px 14px 10px;border-top:1px solid #15202a}
+.group{display:flex;gap:5px;align-items:end;flex-wrap:wrap;padding-right:8px;border-right:1px solid var(--border)}.group:last-child{border:0}
+.group .name{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;width:100%;margin-bottom:-2px}
+label{display:grid;gap:2px;color:var(--muted);font-size:10px}
+button,input,select,textarea{background:#09141e;color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font:inherit}button{cursor:pointer}button:hover{border-color:var(--accent)}
+button.primary{border-color:#238bb8}button.danger{border-color:#8b3c48}button.good{border-color:#2f8653}button.activechip{border-color:var(--accent);color:var(--accent)}
+input.small{width:72px}input.medium,select.medium{width:128px}input.wide{width:220px}input.filter{width:min(420px,100%)}
+nav{display:flex;gap:4px;padding:8px 12px 0;max-width:1900px;margin:auto}
+.tabbtn{background:transparent;color:var(--muted);border:1px solid transparent;border-radius:7px 7px 0 0;padding:8px 12px;cursor:pointer}
+.tabbtn.active{color:var(--text);background:var(--panel);border-color:var(--border);border-bottom-color:var(--panel)}
+main{max-width:1900px;margin:auto;padding:10px 12px 20px}.tab{display:none}.tab.active{display:block}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:9px;padding:9px;margin-bottom:10px}
+.panelhead{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:7px}h2{font-size:13px;margin:0}.mini{font-size:10px;color:var(--muted)}
+.metrics{display:grid;grid-template-columns:repeat(8,minmax(90px,1fr));gap:7px;margin-bottom:10px}
+.metric{background:var(--panel);border:1px solid var(--border);border-radius:9px;padding:7px 9px}.metric .k{color:var(--muted);font-size:10px}.metric .v{font-size:16px;margin-top:4px;font-variant-numeric:tabular-nums}
+.grid2{display:grid;grid-template-columns:2fr 1fr;gap:10px}.split{display:grid;grid-template-columns:1.55fr 1fr;gap:10px}
+canvas{width:100%;display:block;background:#08131d;border-radius:6px;cursor:crosshair}#spectrum{height:300px}#waterfall{height:240px}#trend,#burstTrend{height:150px}
+.chips{display:flex;gap:4px;flex-wrap:wrap}.hint{font-size:11px;color:var(--muted);margin:0}
+.tablewrap{overflow:auto;border:1px solid var(--border);border-radius:6px;max-height:560px}
+table{width:100%;border-collapse:collapse;font-size:11px;font-variant-numeric:tabular-nums}
+th,td{padding:5px 7px;border-bottom:1px solid #1c2b37;text-align:left;white-space:nowrap}
+th{position:sticky;top:0;background:var(--panel2);color:var(--muted);z-index:2}
+tr.clickable{cursor:pointer}tr.clickable:hover{background:#132536}tr.selected{background:#173047}
+.proto{font-size:9px;padding:2px 5px;border:1px solid var(--border);border-radius:999px}
+.detail{white-space:pre-wrap;word-break:break-word;background:#08131d;border:1px solid var(--border);padding:8px;border-radius:6px;max-height:280px;overflow:auto;font-family:Consolas,monospace;font-size:11px}
+.kv{display:grid;grid-template-columns:120px 1fr;gap:4px 8px;margin:8px 0}.kv b{color:var(--muted);font-weight:500}
+.verdict{padding:8px 10px;border-radius:7px;border:1px solid var(--border);margin-bottom:8px}.verdict.decoded{border-color:#2f8653;background:#0d1c16}.verdict.energy{border-color:#5a4a20;background:#16140d}.verdict.guess{border-color:#3d4a58;background:#101820}
+.verdict h3{margin:0 0 4px;font-size:13px}.heatgrid{display:grid;grid-template-columns:repeat(21,minmax(32px,1fr));gap:2px}
+.cell{height:34px;border-radius:4px;padding:3px;display:flex;flex-direction:column;justify-content:space-between;font-size:8px;text-shadow:0 1px 2px #000;cursor:pointer}.cell b{font-size:10px}
+.eventlist{max-height:200px;overflow:auto;font-family:Consolas,monospace;font-size:10px;white-space:pre-wrap}
+.note{padding:8px;border-left:3px solid var(--warn);background:#101a22;color:#cbd9e5}.goodnote{border-left-color:var(--good)}
+.region{padding:6px;border:1px solid var(--border);border-radius:6px;margin:4px 0;background:#0a151f;cursor:pointer}.region strong{color:var(--accent)}
+.inspect{position:fixed;right:16px;bottom:16px;width:280px;background:var(--panel);border:1px solid var(--accent);border-radius:10px;padding:10px;z-index:50;box-shadow:0 8px 30px #0008}
+.help h3{margin:16px 0 6px;font-size:14px}.help p,.help li{color:#c5d4e0;line-height:1.45}.help code{background:#08131d;padding:1px 5px;border-radius:4px}
+.help table td{white-space:normal}
+@media(max-width:1200px){.metrics,.grid2,.split{grid-template-columns:1fr}.group{border:0}}
+@media(max-width:700px){.metrics{grid-template-columns:repeat(2,1fr)}.heatgrid{grid-template-columns:repeat(10,1fr)}nav{overflow:auto}}
+</style>
+</head>
+<body>
+<header>
+  <div class="top">
+    <div>
+      <h1>WaterFall <span>v0.4.3</span></h1>
+      <div class="sub">Co se děje v pásmu 2,4 GHz · špičky · capture</div>
+    </div>
+    <div class="status">
+      <span id="wsBadge" class="badge warn">WS</span>
+      <span id="probeBadge" class="badge warn">Sonda</span>
+      <span id="fwBadge" class="badge">FW —</span>
+      <span id="modeBadge" class="badge">Nečinná</span>
+      <span id="capBadge" class="badge">Capture vypnutý</span>
+      <span id="bleBadge" class="badge">BLE</span>
+      <span id="wifiBadge" class="badge">Wi-Fi</span>
+      <span id="nfcBadge" class="badge">NFC</span>
+      <span id="peakBadge" class="badge">Špičky 0</span>
+    </div>
+  </div>
+  <div class="toolbar">
+    <div class="group">
+      <div class="name">Capture</div>
+      <label>Název session<input id="capLabel" class="wide" placeholder="např. NFC wake 2453 MHz"></label>
+      <button id="capStart" class="good">START</button>
+      <button id="capStop" class="danger">STOP</button>
+      <button id="capExport">Uložit JSONL</button>
+    </div>
+    <div class="group">
+      <div class="name">Pásmo</div>
+      <button data-cmd="scan_start" class="primary">SCAN</button>
+      <button data-cmd="scan_stop">Stop scan</button>
+      <button data-cmd="once">Jeden sweep</button>
+    </div>
+    <div class="group">
+      <div class="name">Sledovat kanál</div>
+      <label>MHz<input id="watchF" class="small" type="number" value="2453"></label>
+      <label>Práh dBm<input id="watchT" class="small" type="number" value="-75"></label>
+      <button id="watchStart" class="good">WATCH</button>
+      <button data-cmd="watch_stop" class="danger">Stop</button>
+    </div>
+    <div class="group" style="flex:1">
+      <div class="name">Filtr</div>
+      <label>Hledat v capture<input id="fQ" class="filter" placeholder="2453, BLE, UID, burst…"></label>
+      <button id="filterApply" class="primary">Použít</button>
+      <button id="filterClear">Vymazat</button>
+    </div>
+  </div>
+</header>
+
+<nav>
+  <button class="tabbtn active" data-tab="spectrumTab">Spektrum</button>
+  <button class="tabbtn" data-tab="peaksTab">Špičky</button>
+  <button class="tabbtn" data-tab="captureTab">Capture</button>
+  <button class="tabbtn" data-tab="devicesTab">Zařízení</button>
+  <button class="tabbtn" data-tab="pcapTab">PCAP</button>
+  <button class="tabbtn" data-tab="settingsTab">Nastavení</button>
+  <button class="tabbtn" data-tab="helpTab">Nápověda</button>
+</nav>
+
+<main>
+<section id="spectrumTab" class="tab active">
+  <div class="metrics">
+    <div class="metric"><div class="k">Sweep</div><div class="v" id="mSweep">—</div></div>
+    <div class="metric"><div class="k">Rychlost</div><div class="v" id="mRate">—</div></div>
+    <div class="metric"><div class="k">Nejsilnější</div><div class="v" id="mPeakF">—</div></div>
+    <div class="metric"><div class="k">RSSI</div><div class="v" id="mPeakR">—</div></div>
+    <div class="metric"><div class="k">Šum (median)</div><div class="v" id="mMedian">—</div></div>
+    <div class="metric"><div class="k">Rozsah</div><div class="v" id="mDyn">—</div></div>
+    <div class="metric"><div class="k">Burstů</div><div class="v" id="mBursts">0</div></div>
+    <div class="metric"><div class="k">Stáří dat</div><div class="v" id="mAge">—</div></div>
+  </div>
+  <div class="panel">
+    <div class="panelhead">
+      <h2>Živé spektrum 2400–2500 MHz</h2>
+      <div>
+        <button id="baselineSet">Zapamatovat klid</button>
+        <button id="baselineClear">Zrušit</button>
+        <span id="baselineText" class="mini">klikni do grafu na zajímavou frekvenci</span>
+      </div>
+    </div>
+    <canvas id="spectrum"></canvas>
+  </div>
+  <div class="panel">
+    <div class="panelhead"><h2>Waterfall</h2><span class="mini">čas dolů · frekvence doprava · světlejší = silnější signál</span></div>
+    <canvas id="waterfall"></canvas>
+  </div>
+  <div class="grid2">
+    <div class="panel">
+      <div class="panelhead"><h2>Co právě ruší pásmo</h2><span class="mini">odhad podle energie, ne dekódovaný paket</span></div>
+      <div id="regions"></div>
+    </div>
+    <div class="panel">
+      <div class="panelhead"><h2>WATCH bursty</h2><span class="mini">aktivita na jedné frekvenci</span></div>
+      <canvas id="burstTrend"></canvas>
+      <div id="burstLog" class="eventlist"></div>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="panel"><div class="panelhead"><h2>Všechny 1 MHz kanály</h2></div><div id="heatgrid" class="heatgrid"></div></div>
+    <div class="panel"><div class="panelhead"><h2>Trend špičky / šumu</h2></div><canvas id="trend"></canvas></div>
+  </div>
+</section>
+
+<section id="peaksTab" class="tab">
+  <div class="panel">
+    <div class="panelhead">
+      <h2>Registrované špičky</h2>
+      <div>
+        <label>Hledat<input id="pQ" class="wide" placeholder="2453, Wi-Fi, jméno…"></label>
+        <button id="pRefresh">Obnovit</button>
+        <button id="pClear" class="danger">Vymazat seznam</button>
+      </div>
+    </div>
+    <p class="hint">Silný signál nad prahem se sem zapíše sám. Můžeš ho pojmenovat a <b>držet</b> (WATCH). Pořád je to energie — zařízení poznáme jen když sedí BLE / Wi-Fi na stejné MHz.</p>
+  </div>
+  <div class="split">
+    <div class="panel">
+      <div class="panelhead"><h2>Seznam</h2><span id="peakCount" class="mini">0</span></div>
+      <div class="tablewrap"><table>
+        <thead><tr><th>MHz</th><th>Jméno</th><th>Odhad</th><th>Peak</th><th>Naposledy</th><th>×</th><th>Bursty</th></tr></thead>
+        <tbody id="peaksBody"></tbody>
+      </table></div>
+    </div>
+    <div class="panel">
+      <div class="panelhead"><h2>Detail špičky</h2><span id="peakDetailId" class="mini">vyber řádek</span></div>
+      <div id="peakVerdict"></div>
+      <div id="peakKv" class="kv"></div>
+      <label>Tvoje jméno<input id="peakName" class="wide" placeholder="např. štítek na stole"></label>
+      <label style="margin-top:6px">Poznámka<input id="peakNotes" class="wide" placeholder="volitelné"></label>
+      <div class="chips" style="margin-top:8px">
+        <button id="peakSave" class="primary">Uložit jméno</button>
+        <button id="peakHold" class="good">Držet (WATCH)</button>
+        <button id="peakFilter">Capture</button>
+        <button id="peakDelete" class="danger">Smazat</button>
+      </div>
+      <div id="peakDevices" style="margin-top:10px"></div>
+    </div>
+  </div>
+</section>
+
+<section id="captureTab" class="tab">
+  <div class="panel">
+    <div class="panelhead">
+      <h2>Zachycené události</h2>
+      <div class="chips">
+        <button class="chip activechip" data-chip="">Vše</button>
+        <button class="chip" data-chip="burst">Bursty</button>
+        <button class="chip" data-chip="energy">Energie</button>
+        <button class="chip" data-chip="ble">BLE</button>
+        <button class="chip" data-chip="wifi">Wi-Fi</button>
+        <button class="chip" data-chip="nfc">NFC</button>
+        <button class="chip" data-chip="guess">Odhady</button>
+      </div>
+    </div>
+    <div class="chips" style="margin-bottom:8px">
+      <label>Session<select id="fSession" class="medium"><option value="">všechny</option></select></label>
+      <label>Zdroj<select id="fSource" class="medium"><option value="">vše</option><option>NRF52840</option><option>RF_ANALYZER</option><option>BLE_HCI</option><option>WIFI_MONITOR</option><option>TWN4</option><option>GPIO</option><option>WEB</option></select></label>
+      <label>RSSI ≥<input id="fRssi" class="small" type="number" placeholder="-80"></label>
+      <label>MHz od<input id="fMin" class="small" type="number" placeholder="2400"></label>
+      <label>MHz do<input id="fMax" class="small" type="number" placeholder="2500"></label>
+      <button id="capRefresh">Obnovit</button>
+      <button id="dbExport">SQLite</button>
+    </div>
+    <p class="hint">Klikni na řádek. Vpravo uvidíš, <b>co to je</b> a jestli známe zařízení, nebo jen energii v pásmu.</p>
+  </div>
+  <div class="split">
+    <div class="panel">
+      <div class="panelhead"><h2>Seznam</h2><span id="eventCount" class="mini">0</span></div>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Čas</th><th>Typ</th><th>MHz</th><th>RSSI</th><th>Zařízení</th><th>Shrnutí</th></tr></thead>
+        <tbody id="eventsBody"></tbody>
+      </table></div>
+    </div>
+    <div class="panel">
+      <div class="panelhead"><h2>Detail</h2><span id="detailId" class="mini">vyber řádek</span></div>
+      <div id="eventVerdict"></div>
+      <div id="eventKv" class="kv"></div>
+      <div id="eventDetail" class="detail">Zatím nic. Spusť Capture a klikni na událost.</div>
+    </div>
+  </div>
+</section>
+
+<section id="devicesTab" class="tab">
+  <div class="panel">
+    <div class="panelhead">
+      <h2>Pozorovaná zařízení</h2>
+      <div>
+        <label>Protokol<select id="dProto" class="medium"><option value="">vše</option><option>BLE</option><option>WIFI_80211</option><option>NFC</option></select></label>
+        <label>Hledat<input id="dQ" class="wide" placeholder="adresa, jméno, UID"></label>
+        <button id="dRefresh">Obnovit</button>
+      </div>
+    </div>
+    <p class="hint">Zařízení vznikne jen z dekódovaného BLE, Wi-Fi rámce nebo NFC. Samotný RSSI sweep zařízení nepozná.</p>
+    <div class="split" style="margin-top:8px">
+      <div class="tablewrap"><table>
+        <thead><tr><th>Protokol</th><th>Adresa / UID</th><th>Jméno</th><th>MHz</th><th>RSSI</th><th>× viděno</th><th>Naposledy</th></tr></thead>
+        <tbody id="devicesBody"></tbody>
+      </table></div>
+      <div>
+        <div id="deviceVerdict"></div>
+        <div id="deviceKv" class="kv"></div>
+        <div id="deviceDetail" class="detail">Klikni na zařízení v tabulce.</div>
+        <div style="margin-top:8px"><button id="deviceInCapture">Ukázat v capture</button></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="pcapTab" class="tab">
+  <div class="panel">
+    <div class="panelhead">
+      <h2>Otevřít PCAP / PCAPNG</h2>
+      <div>
+        <input id="pcapFile" type="file" accept=".pcap,.pcapng,.cap">
+        <button id="pcapUpload" class="good">Načíst</button>
+        <button id="pcapRefresh">Obnovit</button>
+        <span id="pcapCaps" class="mini">tshark: …</span>
+      </div>
+    </div>
+    <p class="hint">Tady jsou skutečné pakety z Wiresharku / tsharku. Není to totéž co RSSI z nRF52840.</p>
+  </div>
+  <div class="panel">
+    <label>Soubor<select id="pcapSelect" class="wide"><option value="">vyber soubor</option></select></label>
+    <label>Display filter<input id="pcapFilter" class="wide" placeholder="btle  ·  wlan  ·  frame.number == 42"></label>
+    <button id="pcapApply" class="primary">Použít</button>
+    <button id="pcapDownload">Stáhnout</button>
+  </div>
+  <div class="split">
+    <div class="panel">
+      <div class="panelhead"><h2>Rámce</h2><span id="pcapCount" class="mini">0</span></div>
+      <div class="tablewrap"><table>
+        <thead><tr><th>#</th><th>Protokol</th><th>Zdroj</th><th>Cíl</th><th>Info</th></tr></thead>
+        <tbody id="pcapBody"></tbody>
+      </table></div>
+    </div>
+    <div class="panel">
+      <div class="panelhead"><h2>Strom + hex</h2><span id="pcapDetailId" class="mini">vyber rámec</span></div>
+      <div id="pcapDetail" class="detail">Klikni na rámec. Detail dělá tshark -V -x.</div>
+    </div>
+  </div>
+</section>
+
+<section id="settingsTab" class="tab">
+  <div class="grid2">
+    <div>
+      <div class="panel">
+        <div class="panelhead"><h2>Jak sonda měří</h2></div>
+        <p class="hint">Jemnější krok = ostřejší obraz, pomalejší sweep. MAX hledá krátké špičky, AVG uklidní šum.</p>
+        <div class="chips" style="margin-top:8px">
+          <label>Rozsah 0–100<input id="rangeA" class="small" type="number" value="0"></label>
+          <label>až<input id="rangeB" class="small" type="number" value="100"></label>
+          <button id="rangeSet">Nastavit</button>
+          <label>Dwell ms<input id="dwell" class="small" type="number" value="4"></label>
+          <button id="dwellSet">Nastavit</button>
+          <label>Krok MHz<select id="step" class="small"><option>1</option><option>2</option><option>5</option><option>10</option></select></label>
+          <button id="stepSet">Nastavit</button>
+          <label>RSSI<select id="rssiMode" class="medium"><option>LAST</option><option>MAX</option><option>AVG</option></select></label>
+          <button id="rssiModeSet">Nastavit</button>
+          <label>Vzorek WATCH µs<input id="watchS" class="small" type="number" value="200"></label>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panelhead"><h2>Pozorovatelé s identitou</h2></div>
+        <p class="hint">Zapínej jen když chceš inventář okolí. Active BLE scan sám vysílá.</p>
+        <div class="chips" style="margin-top:8px">
+          <button id="bleStart" class="good">BLE zapnout</button>
+          <button id="bleStop">BLE vypnout</button>
+          <button id="wifiStart" class="good">Wi-Fi monitor</button>
+          <button id="wifiStop">Wi-Fi vypnout</button>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panelhead"><h2>Co ukládat do capture</h2></div>
+        <div class="chips">
+          <label>Práh oblasti Δ dB<input id="aThreshold" class="small" type="number" value="12"></label>
+          <label>Ukládat sweepy<select id="aSweeps"><option value="true">ano</option><option value="false">ne</option></select></label>
+          <label>Ukládat odhady<select id="aRegions"><option value="true">ano</option><option value="false">ne</option></select></label>
+          <button id="settingsSave">Uložit</button>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="panel">
+        <div class="panelhead"><h2>Záznam a laboratoř</h2></div>
+        <p class="hint">CSV je surový sweep. JSONL experimentu přidá markery. Relé spíná napájení štítku.</p>
+        <div class="chips" style="margin-top:8px">
+          <button id="csvStart">CSV start</button>
+          <button id="csvStop">CSV stop</button>
+          <button id="csvDownload">Stáhnout CSV</button>
+          <button id="expStart">Experiment start</button>
+          <button id="expStop">Experiment stop</button>
+          <button id="expDownload">Stáhnout JSONL</button>
+          <button id="powerOn">POWER ON</button>
+          <button id="powerOff" class="danger">POWER OFF</button>
+          <button data-marker="NFC_EVENT">Marker NFC</button>
+          <button data-marker="RF_EVENT">Marker RF</button>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panelhead"><h2>Živý log</h2></div>
+        <div id="log" class="eventlist" style="max-height:360px"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="helpTab" class="tab help">
+  <div class="panel">
+    <h2>K čemu WaterFall je</h2>
+    <p>Chceš vidět, <b>co se děje v pásmu 2,4 GHz</b>, uložit to a u každé události poznat, jestli známe zařízení, nebo jen energii. Postup je stejný jako ve Wiresharku: spusť capture, filtruj, klikni na řádek, přečti detail.</p>
+    <p>Sonda nRF52840 <b>neměří pakety VUSION</b> a <b>nevysílá</b>. Zpětná komunikace je záměr do budoucna, až bude známé PHY. Teď umíme čas, frekvenci, sílu a — pokud běží BLE / Wi-Fi / NFC — i identitu.</p>
+  </div>
+  <div class="panel">
+    <h3>Rychlý postup</h3>
+    <ol>
+      <li>Sonda svítí zeleně. Klikni <b>SCAN</b> — uvidíš spektrum.</li>
+      <li>Klikni do grafu na špičku → <b>Zapsat</b>, nebo počkej až se zapíše sama.</li>
+      <li>V záložce Špičky ji pojmenuj a klikni <b>Držet</b>.</li>
+      <li>Dej session jméno a klikni <b>START</b> capture.</li>
+      <li>V záložce Capture filtruj a otevři detail řádku.</li>
+      <li><b>STOP</b> a ulož JSONL nebo SQLite.</li>
+    </ol>
+  </div>
+  <div class="panel">
+    <h3>Tlačítka nahoře</h3>
+    <table>
+      <tr><td><b>Capture START / STOP</b></td><td>Zapíše vše, co teď teče, do SQLite session. Bez START se spektrum jen kreslí, neukládá se do Capture.</td></tr>
+      <tr><td><b>Uložit JSONL</b></td><td>Export vybrané nebo právě běžící session.</td></tr>
+      <tr><td><b>SCAN</b></td><td>Sonda pořád dokola měří RSSI 2400–2500 MHz.</td></tr>
+      <tr><td><b>Jeden sweep</b></td><td>Jedno projetí pásma.</td></tr>
+      <tr><td><b>WATCH</b></td><td>Přestane jet celé pásmo a hlídá jednu frekvenci. Hodí se na časování (NFC wake, relé).</td></tr>
+      <tr><td><b>Filtr</b></td><td>Hledá v shrnutí, zařízení i raw textu. Čipy v Capture zúží typ (burst, BLE, NFC…).</td></tr>
+    </table>
+  </div>
+  <div class="panel">
+    <h3>Záložky</h3>
+    <table>
+      <tr><td><b>Spektrum</b></td><td>Živý pohled do pásma. Klik na frekvenci otevře kartu: zapsat špičku, filtrovat, nebo WATCH.</td></tr>
+      <tr><td><b>Špičky</b></td><td>Seznam silných signálů. Automaticky z nadprahových oblastí a WATCH burstů. Pojmenuj a drž jednu frekvenci.</td></tr>
+      <tr><td><b>Capture</b></td><td>Seznam událostí + srozumitelný detail: co to je, známe-li zařízení, surová data.</td></tr>
+      <tr><td><b>Zařízení</b></td><td>Katalog BLE adres, Wi-Fi MAC/SSID a NFC UID. Klik otevře kartu a umí skočit do capture.</td></tr>
+      <tr><td><b>PCAP</b></td><td>Otevřeš .pcap/.pcapng jako ve Wiresharku (tshark). To jsou skutečné rámce, ne RSSI.</td></tr>
+      <tr><td><b>Nastavení</b></td><td>Krok sweepu, BLE/Wi-Fi observer, CSV, relé, markery.</td></tr>
+    </table>
+  </div>
+  <div class="panel">
+    <h3>Typy událostí — co znamenají</h3>
+    <table>
+      <tr><td><b>RF_SWEEP</b></td><td>Jeden průchod pásmem. Víme peak MHz a RSSI. <b>Zařízení neznáme.</b></td></tr>
+      <tr><td><b>RF_BURST</b></td><td>Nadprahová aktivita na jedné frekvenci (WATCH). Čas a síla. <b>Zařízení neznáme.</b></td></tr>
+      <tr><td><b>RF_REGION</b></td><td>Odhad: „vypadá jako Wi-Fi kanál“ nebo „jako BLE advertising“. Není to paket.</td></tr>
+      <tr><td><b>BLE_ADV</b></td><td>Dekódovaný BLE advertisement: adresa, jméno, manufacturer data. Adresa může být náhodná.</td></tr>
+      <tr><td><b>WIFI_FRAME</b></td><td>Skutečný 802.11 rámec z monitor mode: MAC, SSID, kanál, hex. Šifra zůstává šifrou.</td></tr>
+      <tr><td><b>NFC_*</b></td><td>Přiložení / ztráta tagu a UID z TWN4.</td></tr>
+      <tr><td><b>CAPTURE_ / POWER_ / marker</b></td><td>Tvoje značky v časové ose, ať jde experiment znovu srovnat.</td></tr>
+    </table>
+  </div>
+  <div class="panel">
+    <h3>Špičky</h3>
+    <p>Když je ve spektru silný signál, WaterFall ho zapíše sem. Můžeš ho pojmenovat a <b>držet</b> — to spustí WATCH na té MHz. Pokud ve stejné chvíli běží BLE nebo Wi-Fi monitor a sedí frekvence, uvidíš tip na zařízení. Samotná špička pořád není identita a sonda na ni nevysílá.</p>
+  </div>
+  <div class="panel">
+    <h3>Filtry v Capture</h3>
+    <p>Horní pole hledá text. Čipy nastaví typ. Dole můžeš zúžit session, zdroj, minimální RSSI a rozsah MHz. Klik ve spektru vyplní MHz za tebe.</p>
+    <p>PCAP má vlastní Wireshark display filter, například <code>btle</code>, <code>wlan</code>, <code>wpan</code>.</p>
+  </div>
+  <div class="panel">
+    <h3>Ukládání</h3>
+    <table>
+      <tr><td><b>Capture SQLite</b></td><td>Hlavní deník sessioní a událostí. Snapshot stáhneš tlačítkem SQLite.</td></tr>
+      <tr><td><b>JSONL</b></td><td>Jedna session, jeden soubor, hodí se do další analýzy.</td></tr>
+      <tr><td><b>CSV</b></td><td>Jen RF sweep body, bez BLE/NFC.</td></tr>
+      <tr><td><b>Experiment JSONL</b></td><td>Markery a laboratorní časová osa.</td></tr>
+    </table>
+  </div>
+  <div class="panel">
+    <h3>Čeho se WaterFall zatím nedotýká</h3>
+    <p>Není to SDR a nečte proprietární VUSION payload. Neumí z RSSI poznat MAC štítku ani poslat odpověď do éteru. Až bude známá modulace a framing, může přibýt packet RX a později i řízená zpětná komunikace. Teď platí: <b>nejdřív vidět a uložit, potom teprve mluvit.</b></p>
+  </div>
+</section>
+</main>
+
+<div id="inspect" class="inspect" hidden>
+  <div class="mini">Vybraná frekvence</div>
+  <div id="inspectTitle" style="font-size:22px;margin:4px 0">—</div>
+  <div id="inspectRssi" class="mini">—</div>
+  <div class="chips" style="margin-top:8px">
+    <button id="inspectSave" class="primary">Zapsat</button>
+    <button id="inspectFilter">Capture</button>
+    <button id="inspectWatch" class="good">WATCH sem</button>
+    <button id="inspectClose">Zavřít</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  let latest = [], summary = {}, waterRows = [], trends = [], bursts = [];
+  let baseline = null, lastSweepWall = 0, rate = null, lastData = 0, state = {};
+  let specAxes = null, inspectFreq = 2453, selectedDevice = "", selectedPeak = 0;
+  let chip = "", peakByFreq = {};
+  const spec = $("spectrum"), wf = $("waterfall"), tr = $("trend"), bt = $("burstTrend");
+  const S = spec.getContext("2d"), W = wf.getContext("2d"), T = tr.getContext("2d"), B = bt.getContext("2d");
+
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+  const fmt = (x, d = 1) => Number.isFinite(Number(x)) ? Number(x).toFixed(d) : "—";
+  function log(x) {
+    const e = $("log");
+    e.textContent = `[${new Date().toLocaleTimeString()}] ${x}\n` + e.textContent;
+    e.textContent = e.textContent.slice(0, 18000);
+  }
+  function median(a) {
+    a = [...a].sort((x, y) => x - y);
+    if (!a.length) return NaN;
+    const m = Math.floor(a.length / 2);
+    return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2;
+  }
+  function rs(c) {
+    const r = devicePixelRatio || 1, b = c.getBoundingClientRect();
+    const w = Math.max(1, Math.round(b.width * r)), h = Math.max(1, Math.round(b.height * r));
+    if (c.width !== w || c.height !== h) { c.width = w; c.height = h; }
+    return { w, h, r };
+  }
+  function col(v) {
+    const t = Math.max(0, Math.min(1, (v + 105) / 70));
+    const st = [[8,19,29],[16,52,87],[18,116,148],[27,180,187],[226,209,86],[239,119,62]];
+    const x = t * (st.length - 1), i = Math.floor(x), j = Math.min(st.length - 1, i + 1), u = x - i;
+    const c = st[i].map((v, k) => Math.round(v + (st[j][k] - v) * u));
+    return `rgb(${c.join(",")})`;
+  }
+  function axes(c, w, h, r) {
+    const l = 50 * r, rr = 12 * r, t = 12 * r, b = 25 * r, x0 = l, x1 = w - rr, y0 = t, y1 = h - b;
+    c.strokeStyle = "#213342"; c.fillStyle = "#8ca1b4"; c.font = `${9 * r}px Segoe UI`;
+    for (let db = -110; db <= -20; db += 10) {
+      const y = y1 - ((db + 110) / 90) * (y1 - y0);
+      c.beginPath(); c.moveTo(x0, y); c.lineTo(x1, y); c.stroke(); c.fillText(db, 5 * r, y + 3 * r);
+    }
+    for (let f = 2400; f <= 2500; f += 10) {
+      const x = x0 + ((f - 2400) / 100) * (x1 - x0);
+      c.beginPath(); c.moveTo(x, y0); c.lineTo(x, y1); c.stroke(); c.fillText(f, x - 12 * r, h - 6 * r);
+    }
+    return { x0, x1, y0, y1 };
+  }
+  function drawSpec() {
+    const { w, h, r } = rs(spec);
+    S.fillStyle = "#08131d"; S.fillRect(0, 0, w, h);
+    const a = axes(S, w, h, r); specAxes = a;
+    if (!latest.length) return;
+    const y = v => a.y1 - ((Math.max(-110, Math.min(-20, v)) + 110) / 90) * (a.y1 - a.y0);
+    if (baseline) {
+      S.strokeStyle = "#718291"; S.lineWidth = r; S.beginPath();
+      latest.forEach((p, i) => {
+        const v = baseline[p.freq_mhz]; if (v === undefined) return;
+        const x = a.x0 + ((p.freq_mhz - 2400) / 100) * (a.x1 - a.x0);
+        i ? S.lineTo(x, y(v)) : S.moveTo(x, y(v));
+      });
+      S.stroke();
+    }
+    const med = Number(summary.median_dbm ?? median(latest.map(p => p.rssi_dbm)));
+    S.setLineDash([5 * r, 4 * r]); S.strokeStyle = "#ffd166"; S.beginPath();
+    S.moveTo(a.x0, y(med)); S.lineTo(a.x1, y(med)); S.stroke(); S.setLineDash([]);
+    S.strokeStyle = "#46c7ff"; S.lineWidth = 2 * r; S.beginPath();
+    latest.forEach((p, i) => {
+      const x = a.x0 + ((p.freq_mhz - 2400) / 100) * (a.x1 - a.x0);
+      i ? S.lineTo(x, y(p.rssi_dbm)) : S.moveTo(x, y(p.rssi_dbm));
+    });
+    S.stroke();
+    for (const rg of (summary._regions || [])) {
+      const x = a.x0 + ((rg.peak_freq_mhz - 2400) / 100) * (a.x1 - a.x0);
+      S.fillStyle = "#ff6b6b"; S.beginPath(); S.arc(x, y(rg.peak_rssi_dbm), 3.5 * r, 0, Math.PI * 2); S.fill();
+    }
+  }
+  function drawWf() {
+    const { w, h } = rs(wf);
+    W.fillStyle = "#08131d"; W.fillRect(0, 0, w, h);
+    const rows = waterRows.slice(-180), rh = h / 180, cw = w / 101;
+    rows.forEach((row, i) => {
+      const y = h - (rows.length - i) * rh;
+      row.points.forEach(p => {
+        W.fillStyle = col(p.rssi_dbm);
+        W.fillRect((p.freq_mhz - 2400) * cw, y, Math.ceil(cw) + 1, Math.ceil(rh) + 1);
+      });
+    });
+  }
+  function drawTrend() {
+    const { w, h, r } = rs(tr);
+    T.fillStyle = "#08131d"; T.fillRect(0, 0, w, h);
+    if (trends.length < 2) return;
+    const rows = trends.slice(-200), x0 = 40 * r, x1 = w - 8 * r, y0 = 8 * r, y1 = h - 20 * r;
+    const y = v => y1 - ((Math.max(-110, Math.min(-30, v)) + 110) / 80) * (y1 - y0);
+    for (let db = -110; db <= -30; db += 20) {
+      T.strokeStyle = "#213342"; const yy = y(db);
+      T.beginPath(); T.moveTo(x0, yy); T.lineTo(x1, yy); T.stroke();
+    }
+    for (const [key, color] of [["peak", "#46c7ff"], ["median", "#ffd166"]]) {
+      T.strokeStyle = color; T.beginPath();
+      rows.forEach((v, i) => {
+        const x = x0 + i / (rows.length - 1) * (x1 - x0), yy = y(v[key]);
+        i ? T.lineTo(x, yy) : T.moveTo(x, yy);
+      });
+      T.stroke();
+    }
+  }
+  function drawBursts() {
+    const { w, h, r } = rs(bt);
+    B.fillStyle = "#08131d"; B.fillRect(0, 0, w, h);
+    const rows = bursts.slice(-100); if (!rows.length) return;
+    const x0 = 36 * r, x1 = w - 8 * r, y1 = h - 20 * r;
+    const y = v => y1 - ((Math.max(-110, Math.min(-20, v)) + 110) / 90) * (y1 - 8 * r);
+    B.strokeStyle = "#213342";
+    for (let db = -100; db <= -40; db += 20) {
+      const yy = y(db); B.beginPath(); B.moveTo(x0, yy); B.lineTo(x1, yy); B.stroke();
+    }
+    rows.forEach((v, i) => {
+      const x = x0 + i / Math.max(1, rows.length - 1) * (x1 - x0);
+      B.strokeStyle = "#c792ea"; B.beginPath(); B.moveTo(x, y(-110)); B.lineTo(x, y(v.peak_rssi_dbm)); B.stroke();
+    });
+  }
+  function heat() {
+    $("heatgrid").innerHTML = latest.map(p =>
+      `<div class="cell" data-freq="${p.freq_mhz}" style="background:${col(p.rssi_dbm)}" title="${p.freq_mhz} MHz ${p.rssi_dbm} dBm"><span>${p.freq_mhz}</span><b>${p.rssi_dbm}</b></div>`
+    ).join("");
+    $("heatgrid").querySelectorAll(".cell").forEach(el => {
+      el.onclick = () => showInspect(Number(el.dataset.freq));
+    });
+  }
+  function regions(rows) {
+    summary._regions = rows || [];
+    $("regions").innerHTML = rows?.length
+      ? rows.map(r => `<div class="region" data-freq="${r.peak_freq_mhz}"><strong>${esc(r.label)}</strong><br>${r.start_mhz}–${r.end_mhz} MHz · peak ${r.peak_freq_mhz} / ${r.peak_rssi_dbm} dBm<div class="mini">${esc(r.explanation)}</div></div>`).join("")
+      : '<div class="mini">Nic nad prahem. Pásmo vypadá klidně, nebo zvyš citlivost v Nastavení.</div>';
+    $("regions").querySelectorAll(".region").forEach(el => {
+      el.onclick = () => showInspect(Number(el.dataset.freq));
+    });
+  }
+  function rssiAt(freq) {
+    const p = latest.find(x => x.freq_mhz === freq);
+    return p ? p.rssi_dbm : null;
+  }
+  function showInspect(freq) {
+    inspectFreq = Math.max(2400, Math.min(2500, freq));
+    $("watchF").value = inspectFreq;
+    $("inspectTitle").textContent = inspectFreq + " MHz";
+    const rssi = rssiAt(inspectFreq);
+    $("inspectRssi").textContent = rssi == null ? "v posledním sweepu není vzorek" : `${rssi} dBm v posledním sweepu`;
+    $("inspect").hidden = false;
+  }
+  function sweep(m) {
+    latest = m.points; summary = m.summary || {};
+    waterRows.push(m); if (waterRows.length > 180) waterRows.shift();
+    const now = performance.now();
+    if (lastSweepWall) {
+      const hz = 1000 / (now - lastSweepWall);
+      rate = rate === null ? hz : rate * 0.8 + hz * 0.2;
+    }
+    lastSweepWall = now; lastData = Date.now();
+    const pk = [...latest].sort((a, b) => b.rssi_dbm - a.rssi_dbm)[0];
+    const med = Number(summary.median_dbm ?? median(latest.map(p => p.rssi_dbm)));
+    $("mSweep").textContent = m.sweep;
+    $("mRate").textContent = rate === null ? "—" : rate.toFixed(2) + " Hz";
+    $("mPeakF").textContent = pk ? pk.freq_mhz + " MHz" : "—";
+    $("mPeakR").textContent = pk ? pk.rssi_dbm + " dBm" : "—";
+    $("mMedian").textContent = fmt(med) + " dBm";
+    $("mDyn").textContent = fmt(summary.dynamic_range_db) + " dB";
+    trends.push({ peak: pk?.rssi_dbm ?? -110, median: med });
+    if (trends.length > 240) trends.shift();
+    regions(m.regions || []);
+    drawSpec(); drawWf(); drawTrend(); heat();
+  }
+  function burst(m) {
+    bursts.push(m); if (bursts.length > 150) bursts.shift();
+    $("mBursts").textContent = bursts.length;
+    const e = $("burstLog");
+    e.textContent = `#${m.seq} ${m.freq_mhz} MHz  peak ${m.peak_rssi_dbm} dBm  ${m.duration_us} µs\n` + e.textContent;
+    e.textContent = e.textContent.slice(0, 10000);
+    drawBursts();
+  }
+  function onState(s) {
+    state = s;
+    $("probeBadge").textContent = s.probe_connected ? "Sonda online" : "Sonda offline";
+    $("probeBadge").className = "badge " + (s.probe_connected ? "ok" : "bad");
+    $("fwBadge").textContent = "FW " + (s.firmware || "—");
+    $("modeBadge").textContent = s.watch_enabled ? `WATCH ${s.watch_freq_mhz || "?"} MHz` : s.scan_enabled ? "SCAN" : "Nečinná";
+    $("modeBadge").className = "badge " + ((s.watch_enabled || s.scan_enabled) ? "ok" : "");
+    $("capBadge").textContent = s.capture_active ? `Capture #${s.capture_session_id}` : "Capture vypnutý";
+    $("capBadge").className = "badge " + (s.capture_active ? "ok" : "");
+    $("bleBadge").textContent = "BLE " + (s.ble_connected ? "on" : "off");
+    $("bleBadge").className = "badge " + (s.ble_connected ? "ok" : "");
+    $("wifiBadge").textContent = "Wi-Fi " + (s.wifi_connected ? "on" : "off");
+    $("wifiBadge").className = "badge " + (s.wifi_connected ? "ok" : "");
+    $("nfcBadge").textContent = "NFC " + (s.nfc_connected ? (s.nfc_present ? s.nfc_uid : "on") : "off");
+    $("nfcBadge").className = "badge " + (s.nfc_connected ? "ok" : "");
+    if (s.peak_count != null) {
+      $("peakBadge").textContent = "Špičky " + s.peak_count;
+      $("peakBadge").className = "badge " + (s.peak_count ? "ok" : "");
+    }
+    if (s.probe_error) log(s.probe_error);
+    if (s.ble_error) log("BLE " + s.ble_error);
+    if (s.wifi_error) log("Wi-Fi " + s.wifi_error);
+  }
+  async function post(url, body) {
+    const o = { method: "POST" };
+    if (body !== undefined) { o.headers = { "Content-Type": "application/json" }; o.body = JSON.stringify(body); }
+    const r = await fetch(url, o), j = await r.json();
+    if (!r.ok) throw Error(j.error || r.statusText);
+    return j;
+  }
+  async function sessions() {
+    const j = await (await fetch("/api/capture/sessions")).json();
+    const s = $("fSession"), old = s.value;
+    s.innerHTML = '<option value="">všechny</option>' + j.items.map(x =>
+      `<option value="${x.id}">#${x.id} ${esc(x.label || x.started_at)} (${x.event_count})</option>`
+    ).join("");
+    s.value = old;
+    return j.items;
+  }
+  function qs() {
+    const q = new URLSearchParams();
+    const map = [["fSession", "session_id"], ["fSource", "source"], ["fQ", "q"], ["fRssi", "min_rssi"], ["fMin", "freq_min"], ["fMax", "freq_max"]];
+    for (const [id, key] of map) {
+      const v = $(id).value.trim();
+      if (v) q.set(key, v);
+    }
+    if (chip === "burst") q.set("event_type", "RF_BURST");
+    if (chip === "energy") q.set("protocol", "RF_ENERGY");
+    if (chip === "ble") q.set("protocol", "BLE");
+    if (chip === "wifi") q.set("protocol", "WIFI_80211");
+    if (chip === "nfc") q.set("source", "TWN4");
+    if (chip === "guess") q.set("event_type", "RF_REGION");
+    q.set("limit", "1000");
+    return q;
+  }
+  function explain(e) {
+    const t = e.event_type || "";
+    if (t === "RF_SWEEP") return { cls: "energy", title: "Průchod pásmem", text: "Sonda změřila RSSI na mnoha frekvencích. Víme, kde bylo nejsilněji. Nevíme, které zařízení to bylo — to RSSI neřekne." };
+    if (t === "RF_BURST") return { cls: "energy", title: "Krátká aktivita na jedné frekvenci", text: "WATCH hlídal jeden kanál a zachytil nárůst nad práh. Máme čas a sílu. Identita zařízení chybí." };
+    if (t === "RF_REGION") return { cls: "guess", title: "Odhad podle tvaru spektra", text: "WaterFall tipuje Wi-Fi / BLE / neznámé podle šířky a středu energie. Není to dekódovaný paket." };
+    if (t === "BLE_ADV") return { cls: "decoded", title: "BLE advertisement", text: "Dekódovaný BLE paket. Adresa a jméno jsou pozorované identifikátory — adresa může být náhodná." };
+    if (t === "WIFI_FRAME") return { cls: "decoded", title: "Wi-Fi rámec", text: "Skutečný 802.11 rámec z monitor mode. MAC a SSID platí pro tento rámec. Šifrovaná data zůstávají šifrovaná." };
+    if (t.startsWith("NFC")) return { cls: "decoded", title: "NFC událost", text: "Čtečka TWN4 viděla tag. UID je identita čipu, ne RF adresa v 2,4 GHz." };
+    if (t.startsWith("CAPTURE") || t.startsWith("POWER") || t.includes("MARKER") || e.protocol === "MARKER" || e.protocol === "CONTROL")
+      return { cls: "guess", title: "Značka / ovládání", text: "Ruční nebo systémová značka v časové ose experimentu." };
+    return { cls: "guess", title: t || "Událost", text: e.summary || "WaterFall tuhle událost uložil, ale nemá pro ni speciální výklad." };
+  }
+  async function loadEvents() {
+    const j = await (await fetch("/api/capture/events?" + qs())).json();
+    $("eventCount").textContent = j.total + " událostí";
+    $("eventsBody").innerHTML = j.items.map(e =>
+      `<tr class="clickable" data-id="${e.id}"><td>${esc((e.host_time || "").replace("T", " ").slice(0, 19))}</td><td><span class="proto">${esc(e.event_type)}</span></td><td>${e.freq_mhz ?? "—"}</td><td>${e.rssi_dbm ?? "—"}</td><td>${esc(e.device_id || "—")}</td><td>${esc(e.summary || "")}</td></tr>`
+    ).join("");
+    document.querySelectorAll("#eventsBody tr").forEach(r => r.onclick = () => detail(Number(r.dataset.id)));
+  }
+  async function detail(id) {
+    document.querySelectorAll("#eventsBody tr").forEach(r => r.classList.toggle("selected", Number(r.dataset.id) === id));
+    const e = await (await fetch("/api/capture/event/" + id)).json();
+    const x = explain(e);
+    $("detailId").textContent = "#" + id;
+    $("eventVerdict").innerHTML = `<div class="verdict ${x.cls}"><h3>${esc(x.title)}</h3><div>${esc(x.text)}</div></div>`;
+    $("eventKv").innerHTML =
+      `<b>Čas</b><span>${esc(e.host_time)}</span>` +
+      `<b>Zdroj</b><span>${esc(e.source)}</span>` +
+      `<b>Protokol</b><span>${esc(e.protocol)}</span>` +
+      `<b>Typ</b><span>${esc(e.event_type)}</span>` +
+      `<b>Frekvence</b><span>${e.freq_mhz ?? "—"} MHz${e.channel ? " / " + esc(e.channel) : ""}</span>` +
+      `<b>RSSI</b><span>${e.rssi_dbm ?? "—"} dBm</span>` +
+      `<b>Zařízení</b><span>${esc(e.device_id || "neznámé")}</span>` +
+      `<b>Protistrana</b><span>${esc(e.peer_id || "—")}</span>` +
+      `<b>Shrnutí</b><span>${esc(e.summary)}</span>`;
+    $("eventDetail").textContent = JSON.stringify({ metadata: e.metadata, raw_text: e.raw_text, payload_hex: e.payload_hex }, null, 2);
+  }
+  function showDevice(d) {
+    selectedDevice = d.id;
+    const decoded = d.protocol === "BLE" || d.protocol === "WIFI_80211" || d.protocol === "NFC";
+    $("deviceVerdict").innerHTML = decoded
+      ? `<div class="verdict decoded"><h3>${esc(d.name || d.address || d.id)}</h3><div>Pozorovaný identifikátor z ${esc(d.protocol)}. U BLE může být adresa náhodná.</div></div>`
+      : `<div class="verdict energy"><h3>${esc(d.id)}</h3><div>Chybí dekódovaná identita.</div></div>`;
+    $("deviceKv").innerHTML =
+      `<b>ID</b><span>${esc(d.id)}</span>` +
+      `<b>Protokol</b><span>${esc(d.protocol)}</span>` +
+      `<b>Adresa</b><span>${esc(d.address)}</span>` +
+      `<b>Jméno</b><span>${esc(d.name || "—")}</span>` +
+      `<b>Vendor</b><span>${esc(d.vendor || "—")}</span>` +
+      `<b>Typ</b><span>${esc(d.kind || "—")}</span>` +
+      `<b>Poslední MHz</b><span>${d.last_freq_mhz ?? "—"}</span>` +
+      `<b>RSSI</b><span>${d.last_rssi_dbm ?? "—"}</span>` +
+      `<b>Viděno</b><span>${d.seen_count}×</span>`;
+    $("deviceDetail").textContent = JSON.stringify(d.metadata || {}, null, 2);
+  }
+  function showPeak(p) {
+    if (!p) return;
+    selectedPeak = Number(p.freq_mhz);
+    $("watchF").value = selectedPeak;
+    $("peakDetailId").textContent = selectedPeak + " MHz";
+    $("peakName").value = p.name || "";
+    $("peakNotes").value = p.notes || "";
+    const linked = p.maybe_devices || [];
+    const cls = linked.length ? "decoded" : (String(p.protocol_hint || "").includes("LIKE") ? "guess" : "energy");
+    const title = p.name || (p.guess || (selectedPeak + " MHz"));
+    const text = linked.length
+      ? "Na podobné frekvenci je dekódované zařízení. Může to sedět, nemusí — ověř čas v capture."
+      : (p.explanation || "Známe jen frekvenci a sílu. Identita z RSSI neplyne.");
+    $("peakVerdict").innerHTML = `<div class="verdict ${cls}"><h3>${esc(title)}</h3><div>${esc(text)}</div></div>`;
+    $("peakKv").innerHTML =
+      `<b>Frekvence</b><span>${p.freq_mhz} MHz</span>` +
+      `<b>Odhad</b><span>${esc(p.guess || "—")}</span>` +
+      `<b>Hint</b><span>${esc(p.protocol_hint || "—")}</span>` +
+      `<b>Peak RSSI</b><span>${p.peak_rssi_dbm ?? "—"} dBm</span>` +
+      `<b>Poslední RSSI</b><span>${p.last_rssi_dbm ?? "—"} dBm</span>` +
+      `<b>Šířka</b><span>${p.width_mhz ?? "—"} MHz</span>` +
+      `<b>Viděno</b><span>${p.seen_count}×</span>` +
+      `<b>Bursty</b><span>${p.burst_count}</span>` +
+      `<b>Poprvé</b><span>${esc(p.first_seen || "")}</span>` +
+      `<b>Naposledy</b><span>${esc(p.last_seen || "")}</span>`;
+    $("peakDevices").innerHTML = linked.length
+      ? `<div class="note goodnote"><b>Možná souvisí</b><br>` + linked.map(d =>
+          `${esc(d.protocol)} ${esc(d.address || d.id)} ${esc(d.name || "")} · ${d.last_freq_mhz} MHz`
+        ).join("<br>") + `</div>`
+      : `<div class="mini">Žádné dekódované zařízení na ±2 MHz. Zapni BLE nebo Wi-Fi monitor, pokud chceš identitu.</div>`;
+  }
+  async function loadPeaks() {
+    const q = new URLSearchParams();
+    const x = $("pQ").value.trim();
+    if (x) q.set("q", x);
+    const j = await (await fetch("/api/peaks?" + q)).json();
+    peakByFreq = Object.fromEntries((j.items || []).map(p => [String(p.freq_mhz), p]));
+    $("peakCount").textContent = (j.count ?? j.items.length) + " špiček";
+    $("peakBadge").textContent = "Špičky " + (j.count ?? j.items.length);
+    $("peakBadge").className = "badge " + ((j.count ?? j.items.length) ? "ok" : "");
+    $("peaksBody").innerHTML = (j.items || []).map(p =>
+      `<tr class="clickable" data-freq="${p.freq_mhz}"><td>${p.freq_mhz}</td><td>${esc(p.name || "—")}</td><td><span class="proto">${esc(p.guess || p.protocol_hint || "—")}</span></td><td>${p.peak_rssi_dbm ?? "—"}</td><td>${esc((p.last_seen || "").replace("T", " ").slice(0, 19))}</td><td>${p.seen_count}</td><td>${p.burst_count}</td></tr>`
+    ).join("");
+    document.querySelectorAll("#peaksBody tr").forEach(r => {
+      r.onclick = () => {
+        document.querySelectorAll("#peaksBody tr").forEach(x => x.classList.toggle("selected", x === r));
+        showPeak(peakByFreq[r.dataset.freq]);
+      };
+    });
+    if (selectedPeak && peakByFreq[String(selectedPeak)]) showPeak(peakByFreq[String(selectedPeak)]);
+  }
+  async function devices() {
+    const q = new URLSearchParams();
+    const p = $("dProto").value.trim(), x = $("dQ").value.trim();
+    if (p) q.set("protocol", p);
+    if (x) q.set("q", x);
+    const j = await (await fetch("/api/devices?" + q)).json();
+    $("devicesBody").innerHTML = j.items.map(d =>
+      `<tr class="clickable" data-id="${esc(d.id)}"><td>${esc(d.protocol)}</td><td>${esc(d.address)}</td><td>${esc(d.name)}</td><td>${d.last_freq_mhz ?? "—"}</td><td>${d.last_rssi_dbm ?? "—"}</td><td>${d.seen_count}</td><td>${esc((d.last_seen || "").replace("T", " ").slice(0, 19))}</td></tr>`
+    ).join("");
+    const byId = Object.fromEntries(j.items.map(d => [d.id, d]));
+    document.querySelectorAll("#devicesBody tr").forEach(r => {
+      r.onclick = () => {
+        document.querySelectorAll("#devicesBody tr").forEach(x => x.classList.toggle("selected", x === r));
+        showDevice(byId[r.dataset.id]);
+      };
+    });
+  }
+  async function pcapFiles() {
+    const j = await (await fetch("/api/pcap/files")).json();
+    $("pcapCaps").textContent = "tshark: " + (j.tshark_available ? "připraven" : "není nainstalovaný");
+    const s = $("pcapSelect"), old = s.value;
+    s.innerHTML = '<option value="">vyber soubor</option>' + j.items.map(x =>
+      `<option value="${esc(x.name)}">${esc(x.name)} (${Math.round(x.size / 1024)} KiB)</option>`
+    ).join("");
+    if ([...s.options].some(o => o.value === old)) s.value = old;
+  }
+  async function pcapPackets() {
+    const name = $("pcapSelect").value;
+    if (!name) { log("Vyber PCAP soubor"); return; }
+    const q = new URLSearchParams();
+    const f = $("pcapFilter").value.trim();
+    if (f) q.set("display_filter", f);
+    q.set("limit", "500");
+    const r = await fetch("/api/pcap/" + encodeURIComponent(name) + "/packets?" + q);
+    const j = await r.json();
+    if (!r.ok) throw Error(j.error || r.statusText);
+    $("pcapCount").textContent = j.items.length + " rámců";
+    $("pcapBody").innerHTML = j.items.map(x =>
+      `<tr class="clickable" data-frame="${x.frame}"><td>${x.frame}</td><td><span class="proto">${esc(x.protocol)}</span></td><td>${esc(x.source)}</td><td>${esc(x.destination)}</td><td>${esc(x.info)}</td></tr>`
+    ).join("");
+    document.querySelectorAll("#pcapBody tr").forEach(r => r.onclick = () => pcapFrame(Number(r.dataset.frame)));
+  }
+  async function pcapFrame(frame) {
+    const name = $("pcapSelect").value; if (!name) return;
+    document.querySelectorAll("#pcapBody tr").forEach(r => r.classList.toggle("selected", Number(r.dataset.frame) === frame));
+    const r = await fetch("/api/pcap/" + encodeURIComponent(name) + "/frame/" + frame);
+    const j = await r.json();
+    if (!r.ok) throw Error(j.error || r.statusText);
+    $("pcapDetailId").textContent = `${name} #${frame}`;
+    $("pcapDetail").textContent = j.detail;
+  }
+  async function pcapUpload() {
+    const file = $("pcapFile").files[0];
+    if (!file) { log("Vyber .pcap / .pcapng"); return; }
+    const form = new FormData(); form.append("file", file);
+    const r = await fetch("/api/pcap/import", { method: "POST", body: form });
+    const j = await r.json();
+    if (!r.ok) throw Error(j.error || r.statusText);
+    log("Načteno " + j.name);
+    await pcapFiles(); $("pcapSelect").value = j.name; await pcapPackets();
+  }
+  async function settings() {
+    const j = await (await fetch("/api/settings")).json();
+    $("aThreshold").value = j.runtime.rf_region_threshold_db;
+    $("aSweeps").value = String(j.runtime.capture_sweeps);
+    $("aRegions").value = String(j.runtime.capture_regions);
+  }
+  function gotoTab(id) {
+    document.querySelectorAll(".tabbtn").forEach(x => x.classList.toggle("active", x.dataset.tab === id));
+    document.querySelectorAll(".tab").forEach(x => x.classList.toggle("active", x.id === id));
+    if (id === "captureTab") sessions().then(loadEvents);
+    if (id === "peaksTab") loadPeaks();
+    if (id === "devicesTab") devices();
+    if (id === "pcapTab") pcapFiles();
+    setTimeout(() => { drawSpec(); drawWf(); drawTrend(); drawBursts(); }, 20);
+  }
+  function connect() {
+    const ws = new WebSocket((location.protocol === "https:" ? "wss" : "ws") + "://" + location.host + "/ws");
+    ws.onopen = () => { $("wsBadge").textContent = "WS"; $("wsBadge").className = "badge ok"; ws.send("hello"); };
+    ws.onclose = () => { $("wsBadge").textContent = "WS"; $("wsBadge").className = "badge bad"; setTimeout(connect, 1200); };
+    ws.onmessage = e => {
+      const m = JSON.parse(e.data);
+      if (m.type === "state") onState(m.state);
+      else if (m.type === "sweep") sweep(m);
+      else if (m.type === "burst") burst(m);
+      else if (m.type === "history") { waterRows = []; trends = []; m.sweeps.forEach(x => sweep(x)); }
+      else if (m.type === "log") log(m.line);
+      else if (m.type === "capture_event") { if ($("captureTab").classList.contains("active")) loadEvents(); }
+      else if (m.type === "device_update") { if ($("devicesTab").classList.contains("active")) devices(); }
+      else if (m.type === "peak_update") {
+        if (m.count != null) { $("peakBadge").textContent = "Špičky " + m.count; $("peakBadge").className = "badge " + (m.count ? "ok" : ""); }
+        if ($("peaksTab").classList.contains("active")) loadPeaks();
+      }
+      else if (m.type === "marker") log(`${m.marker.kind} ${m.marker.label}`);
+    };
+  }
+
+  spec.addEventListener("click", ev => {
+    if (!specAxes) return;
+    const rect = spec.getBoundingClientRect();
+    const x = (ev.clientX - rect.left) * (spec.width / rect.width);
+    if (x < specAxes.x0 || x > specAxes.x1) return;
+    const freq = Math.round(2400 + ((x - specAxes.x0) / (specAxes.x1 - specAxes.x0)) * 100);
+    showInspect(freq);
+  });
+  $("inspectClose").onclick = () => { $("inspect").hidden = true; };
+  $("inspectWatch").onclick = () => {
+    $("watchF").value = inspectFreq;
+    post(`/api/watch/start/${inspectFreq}/${$("watchT").value}/${$("watchS").value}`).catch(e => log(e.message));
+  };
+  $("inspectSave").onclick = () => {
+    const rssi = rssiAt(inspectFreq);
+    post("/api/peaks", { freq_mhz: inspectFreq, rssi_dbm: rssi }).then(() => {
+      log("špička " + inspectFreq + " MHz zapsána");
+      $("inspect").hidden = true;
+      gotoTab("peaksTab");
+    }).catch(e => log(e.message));
+  };
+  $("inspectFilter").onclick = () => {
+    $("fMin").value = inspectFreq;
+    $("fMax").value = inspectFreq;
+    $("fQ").value = String(inspectFreq);
+    $("inspect").hidden = true;
+    gotoTab("captureTab");
+    loadEvents();
+  };
+
+  document.querySelectorAll(".tabbtn").forEach(b => b.onclick = () => gotoTab(b.dataset.tab));
+  document.querySelectorAll("[data-cmd]").forEach(b => b.onclick = () => post("/api/command/" + b.dataset.cmd).catch(e => log(e.message)));
+  document.querySelectorAll("[data-marker]").forEach(b => b.onclick = () => post("/api/marker/" + encodeURIComponent(b.dataset.marker)).catch(e => log(e.message)));
+  document.querySelectorAll(".chip").forEach(b => b.onclick = () => {
+    chip = b.dataset.chip;
+    document.querySelectorAll(".chip").forEach(x => x.classList.toggle("activechip", x === b));
+    loadEvents();
+  });
+
+  $("rangeSet").onclick = () => post(`/api/range/${$("rangeA").value}/${$("rangeB").value}`).catch(e => log(e.message));
+  $("dwellSet").onclick = () => post(`/api/dwell/${$("dwell").value}`).catch(e => log(e.message));
+  $("stepSet").onclick = () => post(`/api/step/${$("step").value}`).catch(e => log(e.message));
+  $("rssiModeSet").onclick = () => post(`/api/rssimode/${$("rssiMode").value}`).catch(e => log(e.message));
+  $("watchStart").onclick = () => post(`/api/watch/start/${$("watchF").value}/${$("watchT").value}/${$("watchS").value}`).catch(e => log(e.message));
+  $("settingsSave").onclick = () => post("/api/settings/runtime", {
+    rf_region_threshold_db: Number($("aThreshold").value),
+    capture_sweeps: $("aSweeps").value === "true",
+    capture_regions: $("aRegions").value === "true",
+  }).then(() => log("nastavení uloženo")).catch(e => log(e.message));
+
+  $("capStart").onclick = () => post("/api/capture/start", { label: $("capLabel").value, notes: "" })
+    .then(j => { log("capture #" + j.session.id); sessions(); onState({ ...state, capture_active: true, capture_session_id: j.session.id }); })
+    .catch(e => log(e.message));
+  $("capStop").onclick = () => post("/api/capture/stop").then(() => { log("capture stop"); sessions(); loadEvents(); }).catch(e => log(e.message));
+  $("capRefresh").onclick = () => sessions().then(loadEvents);
+  $("filterApply").onclick = () => { gotoTab("captureTab"); loadEvents(); };
+  $("fQ").addEventListener("keydown", e => { if (e.key === "Enter") { gotoTab("captureTab"); loadEvents(); } });
+  $("filterClear").onclick = () => {
+    chip = "";
+    document.querySelectorAll(".chip").forEach(x => x.classList.toggle("activechip", x.dataset.chip === ""));
+    for (const id of ["fSession", "fSource", "fQ", "fRssi", "fMin", "fMax"]) $(id).value = "";
+    loadEvents();
+  };
+  $("capExport").onclick = () => {
+    const id = $("fSession").value || state.capture_session_id;
+    if (id) window.open("/api/capture/export/" + id + ".jsonl", "_blank");
+    else log("Nejdřív spusť nebo vyber session");
+  };
+  $("dbExport").onclick = () => window.open("/api/capture/database", "_blank");
+  $("pRefresh").onclick = loadPeaks;
+  $("pQ").addEventListener("keydown", e => { if (e.key === "Enter") loadPeaks(); });
+  $("pClear").onclick = () => post("/api/peaks/clear").then(() => { selectedPeak = 0; loadPeaks(); log("seznam špiček vymazán"); }).catch(e => log(e.message));
+  $("peakSave").onclick = () => {
+    if (!selectedPeak) { log("Vyber špičku"); return; }
+    post("/api/peaks/" + selectedPeak, { name: $("peakName").value, notes: $("peakNotes").value })
+      .then(() => { log("jméno uloženo"); loadPeaks(); }).catch(e => log(e.message));
+  };
+  $("peakHold").onclick = () => {
+    if (!selectedPeak) { log("Vyber špičku"); return; }
+    $("watchF").value = selectedPeak;
+    post(`/api/watch/start/${selectedPeak}/${$("watchT").value}/${$("watchS").value}`).then(() => log("WATCH " + selectedPeak + " MHz")).catch(e => log(e.message));
+  };
+  $("peakFilter").onclick = () => {
+    if (!selectedPeak) { log("Vyber špičku"); return; }
+    $("fMin").value = selectedPeak; $("fMax").value = selectedPeak; $("fQ").value = String(selectedPeak);
+    gotoTab("captureTab"); loadEvents();
+  };
+  $("peakDelete").onclick = () => {
+    if (!selectedPeak) { log("Vyber špičku"); return; }
+    post("/api/peaks/" + selectedPeak + "/delete").then(() => { selectedPeak = 0; loadPeaks(); }).catch(e => log(e.message));
+  };
+  $("dRefresh").onclick = devices;
+  $("dProto").onchange = devices;
+  $("deviceInCapture").onclick = () => {
+    if (!selectedDevice) { log("Vyber zařízení"); return; }
+    $("fQ").value = selectedDevice;
+    gotoTab("captureTab");
+    loadEvents();
+  };
+
+  $("bleStart").onclick = () => post("/api/ble/start").then(j => log(j.message)).catch(e => log(e.message));
+  $("bleStop").onclick = () => post("/api/ble/stop").then(j => log(j.message)).catch(e => log(e.message));
+  $("wifiStart").onclick = () => post("/api/wifi/start").then(j => log(j.message)).catch(e => log(e.message));
+  $("wifiStop").onclick = () => post("/api/wifi/stop").then(j => log(j.message)).catch(e => log(e.message));
+  $("pcapUpload").onclick = () => pcapUpload().catch(e => log(e.message));
+  $("pcapRefresh").onclick = () => pcapFiles().catch(e => log(e.message));
+  $("pcapApply").onclick = () => pcapPackets().catch(e => log(e.message));
+  $("pcapSelect").onchange = () => { if ($("pcapSelect").value) pcapPackets().catch(e => log(e.message)); };
+  $("pcapDownload").onclick = () => {
+    const n = $("pcapSelect").value;
+    if (n) window.open("/api/pcap/" + encodeURIComponent(n) + "/download", "_blank");
+    else log("Vyber PCAP");
+  };
+
+  $("baselineSet").onclick = () => {
+    const rows = waterRows.slice(-10); if (!rows.length) return;
+    const s = {}, n = {};
+    rows.forEach(r => r.points.forEach(p => { s[p.freq_mhz] = (s[p.freq_mhz] || 0) + p.rssi_dbm; n[p.freq_mhz] = (n[p.freq_mhz] || 0) + 1; }));
+    baseline = {}; Object.keys(s).forEach(f => baseline[f] = s[f] / n[f]);
+    $("baselineText").textContent = "klid z " + rows.length + " sweepů";
+    drawSpec();
+  };
+  $("baselineClear").onclick = () => { baseline = null; $("baselineText").textContent = "klikni do grafu na zajímavou frekvenci"; drawSpec(); };
+  $("csvStart").onclick = () => post("/api/record/start").catch(e => log(e.message));
+  $("csvStop").onclick = () => post("/api/record/stop").catch(e => log(e.message));
+  $("csvDownload").onclick = () => window.open("/api/record/download", "_blank");
+  $("expStart").onclick = () => post("/api/experiment/start").catch(e => log(e.message));
+  $("expStop").onclick = () => post("/api/experiment/stop").catch(e => log(e.message));
+  $("expDownload").onclick = () => window.open("/api/experiment/download", "_blank");
+  $("powerOn").onclick = () => post("/api/relay/on").catch(e => log(e.message));
+  $("powerOff").onclick = () => post("/api/relay/off").catch(e => log(e.message));
+
+  setInterval(() => { $("mAge").textContent = lastData ? ((Date.now() - lastData) / 1000).toFixed(1) + " s" : "—"; }, 250);
+  window.onresize = () => { drawSpec(); drawWf(); drawTrend(); drawBursts(); };
+  settings(); sessions(); connect();
+  drawSpec(); drawWf(); drawTrend(); drawBursts();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,57 @@
+{
+  "host": "0.0.0.0",
+  "port": 8088,
+  "history_sweeps": 240,
+  "csv_dir": "/var/lib/waterfall/captures",
+  "experiment_dir": "/var/lib/waterfall/experiments",
+  "capture": {
+    "db_path": "/var/lib/waterfall/capture/waterfall.sqlite3",
+    "export_dir": "/var/lib/waterfall/capture/exports"
+  },
+  "analysis": {
+    "rf_region_threshold_db": 12.0,
+    "capture_sweeps": true,
+    "capture_regions": true
+  },
+  "rf_probe": {
+    "enabled": true,
+    "serial_port": "auto",
+    "vid": "2fe3",
+    "pid": "0001",
+    "product_prefix": "OpenVusion RF Probe",
+    "serial_number": "",
+    "baudrate": 115200,
+    "auto_scan": true,
+    "connect_delay_ms": 350
+  },
+  "ble_observer": {
+    "enabled": true,
+    "auto_start": false,
+    "scan_mode": "active",
+    "allow_active_fallback": false
+  },
+  "wifi_monitor": {
+    "enabled": false,
+    "interface": "wlan1mon",
+    "note": "Vyžaduje samostatné Wi-Fi rozhraní v monitor mode a CAP_NET_RAW/root.",
+    "auto_start": false
+  },
+  "nfc_reader": {
+    "enabled": true,
+    "serial_port": "/dev/serial/by-id/usb-OEM_TWN4_...-if00",
+    "baudrate": 9600,
+    "poll_interval_ms": 80,
+    "expected_uid": ""
+  },
+  "relay": {
+    "enabled": true,
+    "gpio_bcm": 17,
+    "active_low": true,
+    "default_power_on": true
+  },
+  "mock_mode": false,
+  "pcap": {
+    "enabled": true,
+    "directory": "/var/lib/waterfall/pcap"
+  }
+}

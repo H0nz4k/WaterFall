@@ -1,0 +1,7 @@
+fastapi>=0.115,<1
+uvicorn[standard]>=0.30,<1
+pyserial>=3.5,<4
+gpiozero>=2.0,<3
+bleak>=0.22,<2
+scapy>=2.5,<3
+python-multipart>=0.0.9,<1
