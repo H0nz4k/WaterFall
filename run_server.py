@@ -1,8 +1,14 @@
 import json
+import logging
 import os
 from pathlib import Path
 
 import uvicorn
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+)
 
 BASE = Path(__file__).resolve().parent
 CONFIG = Path(os.environ.get("WATERFALL_CONFIG", os.environ.get("OPENVUSION_RF_CONFIG", BASE / "config.json")))

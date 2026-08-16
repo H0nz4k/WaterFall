@@ -2,7 +2,7 @@
 
 Webový RF capture / analyzer pro výzkum **OpenVusion** (SES-imagotag VUSION a okolní 2,4 GHz pásmo).
 
-**Verze:** `0.4.3` · soubor [`VERSION`](VERSION) · historie v [`CHANGELOG.md`](CHANGELOG.md)  
+**Verze:** `0.4.4` · soubor [`VERSION`](VERSION) · historie v [`CHANGELOG.md`](CHANGELOG.md)  
 **Sonda:** [OpenVusion RF Probe](https://github.com/H0nz4k/OpenVusion_RF_Probe) 0.7.2 na nRF52840 Dongle  
 **Host:** Raspberry Pi / Linux · web na portu `8088`
 
@@ -21,6 +21,9 @@ WaterFall ukáže, **co se děje v pásmu 2400–2500 MHz**, uloží to a u kaž
 - volitelně BLE observer, 802.11 monitor, TWN4, GPIO relé
 
 Sonda **jen měří energii**. Neumí packet RX proprietárního VUSION protokolu a **nevysílá**.
+
+Když nahoře **PROBE bliká** ONLINE/OFFLINE a spektrum přitom žije, jde o USB reconnect: [`TROUBLESHOOTING.md`](TROUBLESHOOTING.md).  
+Build a flash donglu: [BUILD_FLASH.md](https://github.com/H0nz4k/OpenVusion_RF_Probe/blob/main/BUILD_FLASH.md).
 
 ## Rychlý start
 

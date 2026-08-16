@@ -1,7 +1,13 @@
 # WaterFall CHANGELOG
 
 Formát: `X.Y.Z — YYYY-MM-DD`. Aktuální verze je v [`VERSION`](VERSION).
-Git tag odpovídá verzi (`v0.4.3`).
+Git tag odpovídá verzi (`v0.4.4`).
+
+## 0.4.4 — 2026-08-17
+
+- pád USB sondy se zapíše do živého logu i journalu jako `PROBE DROP …`;
+- odznak Sonda ukáže poslední `probe_error` po najetí myší;
+- `watch_probe_state.sh` a [`TROUBLESHOOTING.md`](TROUBLESHOOTING.md) pro blikající ONLINE/OFFLINE.
 
 ## 0.4.3 — 2026-08-17
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import csv
 import json
+import logging
 import math
 import os
 import random
@@ -36,7 +37,8 @@ from .rf_analysis import detect_regions
 from .wifi_watch import WifiMonitorWatcher
 
 
-VERSION = "0.4.3"
+VERSION = "0.4.4"
+log = logging.getLogger("waterfall")
 BASE_DIR = Path(__file__).resolve().parent.parent
 STATIC_DIR = BASE_DIR / "app" / "static"
 CONFIG_PATH = Path(
@@ -559,6 +561,8 @@ class ProbeWorker(threading.Thread):
                 state.scan_enabled = False
                 state.watch_enabled = False
                 state.probe_error = f"{type(exc).__name__}: {exc}"
+                log.warning("PROBE DROP %s", state.probe_error)
+                hub.send({"type": "log", "line": f"PROBE DROP {state.probe_error}"})
                 broadcast_state()
                 time.sleep(1.5)
 
