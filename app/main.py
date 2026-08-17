@@ -37,7 +37,7 @@ from .rf_analysis import detect_regions
 from .wifi_watch import WifiMonitorWatcher
 
 
-VERSION = "0.4.7"
+VERSION = "0.4.8"
 log = logging.getLogger("waterfall")
 BASE_DIR = Path(__file__).resolve().parent.parent
 STATIC_DIR = BASE_DIR / "app" / "static"
@@ -418,6 +418,7 @@ class ProbeWorker(threading.Thread):
         self.q: deque[str] = deque()
         self.lock = threading.Lock()
         self.stop_event = threading.Event()
+        self.rx = bytearray()
 
     def command(self, value: str):
         with self.lock:
@@ -545,14 +546,31 @@ class ProbeWorker(threading.Thread):
         return False
 
     def _readline(self, ser: serial.Serial) -> bytes:
-        try:
-            return ser.readline()
-        except Exception as exc:
-            if self._transient(exc):
-                # Don't close the port. Closing drops DTR, firmware stops
-                # SCAN, and the next PING gets glued onto a leftover SWEEP.
-                return b""
-            raise
+        """Assemble until newline. A 0.25s timeout used to return a torn SWEEP
+        mid-line; the tail then looked like a disconnect + unknown command."""
+        deadline = time.monotonic() + 3.0
+        while time.monotonic() < deadline and not self.stop_event.is_set():
+            try:
+                waiting = ser.in_waiting
+                chunk = ser.read(waiting if waiting else 1)
+            except Exception as exc:
+                if self._transient(exc):
+                    time.sleep(0.02)
+                    continue
+                raise
+            if chunk:
+                self.rx.extend(chunk)
+                nl = self.rx.find(b"\n")
+                if nl >= 0:
+                    line = bytes(self.rx[:nl])
+                    del self.rx[: nl + 1]
+                    if len(self.rx) > 8192:
+                        self.rx.clear()
+                    return line
+                if len(self.rx) > 8192:
+                    self.rx.clear()
+                    return b""
+        return b""
 
     def run(self):
         cfg = CONFIG.get("rf_probe", {})
@@ -570,7 +588,7 @@ class ProbeWorker(threading.Thread):
                 serial_kwargs = dict(
                     port=port,
                     baudrate=int(cfg.get("baudrate", 115200)),
-                    timeout=0.25,
+                    timeout=1.0,
                     write_timeout=5.0,
                     rtscts=False,
                     dsrdtr=False,
@@ -581,6 +599,7 @@ class ProbeWorker(threading.Thread):
                 except (TypeError, ValueError):
                     ser_ctx = serial.Serial(**serial_kwargs)
                 with ser_ctx as ser:
+                    self.rx.clear()
                     self._tune_tty(ser)
                     time.sleep(max(0.1, int(cfg.get("connect_delay_ms", 350)) / 1000.0))
                     self._tune_tty(ser)
@@ -594,52 +613,67 @@ class ProbeWorker(threading.Thread):
                         self._send(ser, "PING")
                         time.sleep(0.05)
                         self._send(ser, "INFO")
-                    if cfg.get("auto_scan", True) and not state.scan_enabled and not state.watch_enabled:
+                    # Opening CDC drops DTR, firmware stops SCAN. Always restore.
+                    if state.watch_enabled:
+                        time.sleep(0.15)
+                        self._send(
+                            ser,
+                            f"WATCH START {state.watch_freq_mhz} {state.watch_threshold_dbm} {state.watch_sample_us}",
+                        )
+                    elif cfg.get("auto_scan", True):
                         time.sleep(0.15)
                         self._send(ser, "SCAN START")
 
                     while not self.stop_event.is_set():
-                        for cmd in self.commands():
-                            self._send(ser, cmd)
-                        raw = self._readline(ser)
-                        if not raw:
-                            continue
-                        line = raw.decode("utf-8", errors="replace").strip()
-                        if not line or self._sweep_fragment(line):
-                            continue
-                        state.last_line = line
-                        sweep = self.parse_sweep(line)
-                        if sweep:
-                            register_sweep(sweep)
-                            continue
-                        burst = self.parse_burst(line)
-                        if burst:
-                            register_burst(burst)
-                            continue
-                        if line.startswith("FW="):
-                            state.firmware = line[3:]
-                            broadcast_state()
-                        elif line.startswith("PONG"):
-                            hub.send({"type": "log", "line": line})
-                        elif line.startswith("OK SCAN=ON"):
-                            state.scan_enabled = True
-                            state.watch_enabled = False
-                            broadcast_state(); hub.send({"type": "log", "line": line})
-                        elif line.startswith("OK SCAN=OFF"):
-                            state.scan_enabled = False
-                            broadcast_state(); hub.send({"type": "log", "line": line})
-                        elif line.startswith("OK WATCH=ON"):
-                            state.watch_enabled = True
-                            state.scan_enabled = False
-                            m = re.search(r"FREQ=(\d+).*THRESH=(-?\d+).*SAMPLE_US=(\d+)", line, re.I)
-                            if m:
-                                state.watch_freq_mhz = int(m.group(1)); state.watch_threshold_dbm = int(m.group(2)); state.watch_sample_us = int(m.group(3))
-                            broadcast_state(); hub.send({"type": "log", "line": line})
-                        elif line.startswith("OK WATCH=OFF"):
-                            state.watch_enabled = False
-                            broadcast_state(); hub.send({"type": "log", "line": line})
-                        else:
-                            hub.send({"type": "log", "line": line})
+                        try:
+                            for cmd in self.commands():
+                                self._send(ser, cmd)
+                            raw = self._readline(ser)
+                            if not raw:
+                                continue
+                            line = raw.decode("utf-8", errors="replace").strip()
+                            if not line or self._sweep_fragment(line):
+                                continue
+                            state.last_line = line
+                            sweep = self.parse_sweep(line)
+                            if sweep:
+                                register_sweep(sweep)
+                                continue
+                            burst = self.parse_burst(line)
+                            if burst:
+                                register_burst(burst)
+                                continue
+                            if line.startswith("FW="):
+                                state.firmware = line[3:]
+                                broadcast_state()
+                            elif line.startswith("PONG"):
+                                hub.send({"type": "log", "line": line})
+                            elif line.startswith("OK SCAN=ON"):
+                                state.scan_enabled = True
+                                state.watch_enabled = False
+                                broadcast_state(); hub.send({"type": "log", "line": line})
+                            elif line.startswith("OK SCAN=OFF"):
+                                state.scan_enabled = False
+                                broadcast_state(); hub.send({"type": "log", "line": line})
+                            elif line.startswith("OK WATCH=ON"):
+                                state.watch_enabled = True
+                                state.scan_enabled = False
+                                m = re.search(r"FREQ=(\d+).*THRESH=(-?\d+).*SAMPLE_US=(\d+)", line, re.I)
+                                if m:
+                                    state.watch_freq_mhz = int(m.group(1)); state.watch_threshold_dbm = int(m.group(2)); state.watch_sample_us = int(m.group(3))
+                                broadcast_state(); hub.send({"type": "log", "line": line})
+                            elif line.startswith("OK WATCH=OFF"):
+                                state.watch_enabled = False
+                                broadcast_state(); hub.send({"type": "log", "line": line})
+                            else:
+                                hub.send({"type": "log", "line": line})
+                        except Exception as exc:
+                            if self._transient(exc) and self._data_fresh(3.0):
+                                log.warning("PROBE GLITCH %s", exc)
+                                hub.send({"type": "log", "line": f"PROBE GLITCH {type(exc).__name__}: {exc}"})
+                                time.sleep(0.05)
+                                continue
+                            raise
             except Exception as exc:
                 state.probe_error = f"{type(exc).__name__}: {exc}"
                 log.warning("PROBE DROP %s", state.probe_error)

@@ -2,11 +2,11 @@
 
 Webový RF capture / analyzer pro výzkum **OpenVusion** (SES-imagotag VUSION a okolní 2,4 GHz pásmo).
 
-**Verze:** `0.4.7` · soubor [`VERSION`](VERSION) · historie v [`CHANGELOG.md`](CHANGELOG.md)  
+**Verze:** `0.4.8` · soubor [`VERSION`](VERSION) · historie v [`CHANGELOG.md`](CHANGELOG.md)  
 **Sonda:** [OpenVusion RF Probe](https://github.com/H0nz4k/OpenVusion_RF_Probe) 0.7.2 na nRF52840 Dongle  
 **Host:** Raspberry Pi / Linux · web na portu `8088`
 
-WaterFall ukáže, **co se děje v pásmu 2400–2500 MHz**, uloží to a u každé události řekne, jestli známe zařízení, nebo jen energii. Ovládání je schválně jednoduché — podobné Wiresharku: START capture, filtr, klik na řádek, detail.
+WaterFall ukáže, **co se děje v pásmu 2400–2500 MHz**, uloží to a u každé události řekne, jestli známe zařízení, nebo jen energii. Výchozí ovládání je **Easy** (SCAN, capture, WATCH). **Pro** v Nastavení nebo tlačítkem nahoře přidá laboratorní ovládání.
 
 > Silný signál na 2453 MHz **není** automaticky „VUSION paket“. RSSI z nRF52840 neurčí MAC, UID ani protokol. Identita vzniká jen z dekódovaného BLE, 802.11 nebo NFC.
 
@@ -85,7 +85,7 @@ python run_server.py
 
 - aktuální číslo je v [`VERSION`](VERSION) a v `app/main.py` (`VERSION`)
 - každá viditelná změna patří do [`CHANGELOG.md`](CHANGELOG.md) nahoře, ve formátu `X.Y.Z — YYYY-MM-DD`
-- tag v gitu: `v0.4.5`
+- tag v gitu: `v0.4.8`
 
 | Část | Význam |
 |---|---|
@@ -93,7 +93,7 @@ python run_server.py
 | minor | nová funkce (Špičky, Capture, PCAP…) |
 | patch | UI, opravy, dokumentace |
 
-Firmware sondy se verzuje zvlášť. WaterFall 0.4.5 očekává Probe **0.7.2** (`WATERFALL_COMPAT=0.4.1`).
+Firmware sondy se verzuje zvlášť. WaterFall 0.4.8 očekává Probe **0.7.2** (`WATERFALL_COMPAT=0.4.1`).
 
 ## Config — důležité
 

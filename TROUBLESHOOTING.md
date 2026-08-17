@@ -5,6 +5,10 @@ Blikání znamená: sériové spojení se shodí a WaterFall se po **1,5 s** zno
 
 Od 0.4.6 má odznak zůstat **zelený**, dokud tečou sweep data (stáří do 3 s). Červená je až když data opravdu přestanou. Krátký USB glitch se zkusí znovu přečíst.
 
+Od **0.4.8** host čeká na celý řádek až do `\n` (až 3 s). Starý `readline()` timeout 0,25 s vracel utržený `SWEEP`; zbytek `,2431:-105` se pak slepil s `PING` a firmware hlásil `ERR unknown command`. WaterFall teď ten zbytek zahodí a port kvůli tomu nezavírá (`PROBE GLITCH` v logu, ne `PROBE DROP`).
+
+Reflash donglu **není nutný** — 0.4.8 to spraví na hostu. Novější firmware skládá `SWEEP` do bufferu a pošle ho najednou (méně utržených řádků). USB produkt zůstává `v0.7.2`.
+
 | Co vidíš | Význam |
 |---|---|
 | ONLINE + Data age ~0,4 s | spojení drží, sweep teče |
@@ -27,11 +31,11 @@ SerialException: device reports readiness to read but returned no data
   (device disconnected or multiple access on port?)
 ```
 
-Linux CDC má po `open()` chvíli zapnuté ECHO. Zbytek `SWEEP` se odrazí zpět do firmware a slepí se s `PING`. Zavření portu shodí DTR, firmware zastaví SCAN, WaterFall se znovu připojí a pošle další `PING`. Od 0.4.7 se port kvůli tomuto glitchi nezavírá a ECHO se vypne hned.
+Linux CDC má po `open()` chvíli zapnuté ECHO. Zbytek `SWEEP` se odrazí zpět do firmware a slepí se s `PING`. Zavření portu shodí DTR, firmware zastaví SCAN, WaterFall se znovu připojí a pošle další `PING`. Od 0.4.7 se port kvůli tomuto glitchi nezavírá a ECHO se vypne hned. Od 0.4.8 se navíc skládá celý řádek a po znovuotevření se SCAN/WATCH vždy obnoví.
 
 Na Raspberry taky často **ModemManager** sahá na `ttyACM`. `install.sh` od 0.4.7 dává udev pravidlo `ID_MM_DEVICE_IGNORE` pro VID/PID `2fe3:0001`.
 
-Write timeout může souviset i s tím, že 0.7.2 posílá celý `SWEEP` přes `uart_poll_out()` byte po bytu. To ve firmware zatím neměň, pokud spektrum žije.
+Write timeout může souviset i s tím, že starší 0.7.2 posílala `SWEEP` byte po bytu během samplování. Aktuální zdroj skládá řádek a teprve pak TX (s yield každých 64 B). WaterFall 0.4.8 to na hostu dohání skládáním do `\n`.
 
 ---
 

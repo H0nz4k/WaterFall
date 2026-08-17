@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>WaterFall 0.4.7</title>
+<title>WaterFall 0.4.8</title>
 <style>
 :root{color-scheme:dark;--bg:#071019;--panel:#0c1722;--panel2:#101d29;--border:#263746;--text:#e8f0f7;--muted:#8ca1b4;--accent:#46c7ff;--good:#5ce08a;--warn:#ffd166;--bad:#ff6b6b;--purple:#c792ea}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,Segoe UI,Arial,sans-serif;font-size:13px}
@@ -48,13 +48,18 @@ tr.clickable{cursor:pointer}tr.clickable:hover{background:#132536}tr.selected{ba
 .help table td{white-space:normal}
 @media(max-width:1200px){.metrics,.grid2,.split{grid-template-columns:1fr}.group{border:0}}
 @media(max-width:700px){.metrics{grid-template-columns:repeat(2,1fr)}.heatgrid{grid-template-columns:repeat(10,1fr)}nav{overflow:auto}}
+body.easy .pro-only{display:none !important}
+body.easy .tabbtn[data-tab="devicesTab"],body.easy .tabbtn[data-tab="pcapTab"]{display:none}
+body.easy .metrics{grid-template-columns:repeat(7,minmax(90px,1fr))}
+button.modebtn{border-radius:999px;background:var(--panel);padding:4px 8px;font-size:10px}
+body.pro button.modebtn{border-color:var(--accent);color:var(--accent)}
 </style>
 </head>
-<body>
+<body class="easy">
 <header>
   <div class="top">
     <div>
-      <h1>WaterFall <span>v0.4.7</span></h1>
+      <h1>WaterFall <span>v0.4.8</span></h1>
       <div class="sub">Co se děje v pásmu 2,4 GHz · špičky · capture</div>
     </div>
     <div class="status">
@@ -63,10 +68,11 @@ tr.clickable{cursor:pointer}tr.clickable:hover{background:#132536}tr.selected{ba
       <span id="fwBadge" class="badge">FW —</span>
       <span id="modeBadge" class="badge">Nečinná</span>
       <span id="capBadge" class="badge">Capture vypnutý</span>
-      <span id="bleBadge" class="badge">BLE</span>
-      <span id="wifiBadge" class="badge">Wi-Fi</span>
+      <span id="bleBadge" class="badge pro-only">BLE</span>
+      <span id="wifiBadge" class="badge pro-only">Wi-Fi</span>
       <span id="nfcBadge" class="badge">NFC</span>
       <span id="peakBadge" class="badge">Špičky 0</span>
+      <button id="uiModeBtn" class="badge modebtn">Režim: Easy</button>
     </div>
   </div>
   <div class="toolbar">
@@ -75,22 +81,22 @@ tr.clickable{cursor:pointer}tr.clickable:hover{background:#132536}tr.selected{ba
       <label>Název session<input id="capLabel" class="wide" placeholder="např. NFC wake 2453 MHz"></label>
       <button id="capStart" class="good">START</button>
       <button id="capStop" class="danger">STOP</button>
-      <button id="capExport">Uložit JSONL</button>
+      <button id="capExport" class="pro-only">Uložit JSONL</button>
     </div>
     <div class="group">
       <div class="name">Pásmo</div>
       <button data-cmd="scan_start" class="primary">SCAN</button>
       <button data-cmd="scan_stop">Stop scan</button>
-      <button data-cmd="once">Jeden sweep</button>
+      <button data-cmd="once" class="pro-only">Jeden sweep</button>
     </div>
     <div class="group">
       <div class="name">Sledovat kanál</div>
       <label>MHz<input id="watchF" class="small" type="number" value="2453"></label>
-      <label>Práh dBm<input id="watchT" class="small" type="number" value="-75"></label>
+      <label class="pro-only">Práh dBm<input id="watchT" class="small" type="number" value="-75"></label>
       <button id="watchStart" class="good">WATCH</button>
       <button data-cmd="watch_stop" class="danger">Stop</button>
     </div>
-    <div class="group" style="flex:1">
+    <div class="group pro-only" style="flex:1">
       <div class="name">Filtr</div>
       <label>Hledat v capture<input id="fQ" class="filter" placeholder="2453, BLE, UID, burst…"></label>
       <button id="filterApply" class="primary">Použít</button>
@@ -118,7 +124,7 @@ tr.clickable{cursor:pointer}tr.clickable:hover{background:#132536}tr.selected{ba
     <div class="metric"><div class="k">RSSI</div><div class="v" id="mPeakR">—</div></div>
     <div class="metric"><div class="k">Šum (median)</div><div class="v" id="mMedian">—</div></div>
     <div class="metric"><div class="k">Rozsah</div><div class="v" id="mDyn">—</div></div>
-    <div class="metric"><div class="k">Burstů</div><div class="v" id="mBursts">0</div></div>
+    <div class="metric pro-only"><div class="k">Burstů</div><div class="v" id="mBursts">0</div></div>
     <div class="metric"><div class="k">Stáří dat</div><div class="v" id="mAge">—</div></div>
   </div>
   <div class="panel">
@@ -147,7 +153,7 @@ tr.clickable{cursor:pointer}tr.clickable:hover{background:#132536}tr.selected{ba
       <div id="burstLog" class="eventlist"></div>
     </div>
   </div>
-  <div class="grid2">
+  <div class="grid2 pro-only">
     <div class="panel"><div class="panelhead"><h2>Všechny 1 MHz kanály</h2></div><div id="heatgrid" class="heatgrid"></div></div>
     <div class="panel"><div class="panelhead"><h2>Trend špičky / šumu</h2></div><canvas id="trend"></canvas></div>
   </div>
@@ -198,20 +204,22 @@ tr.clickable{cursor:pointer}tr.clickable:hover{background:#132536}tr.selected{ba
         <button class="chip activechip" data-chip="">Vše</button>
         <button class="chip" data-chip="burst">Bursty</button>
         <button class="chip" data-chip="energy">Energie</button>
-        <button class="chip" data-chip="ble">BLE</button>
-        <button class="chip" data-chip="wifi">Wi-Fi</button>
+        <button class="chip pro-only" data-chip="ble">BLE</button>
+        <button class="chip pro-only" data-chip="wifi">Wi-Fi</button>
         <button class="chip" data-chip="nfc">NFC</button>
-        <button class="chip" data-chip="guess">Odhady</button>
+        <button class="chip pro-only" data-chip="guess">Odhady</button>
       </div>
     </div>
-    <div class="chips" style="margin-bottom:8px">
+    <div class="chips pro-only" style="margin-bottom:8px">
       <label>Session<select id="fSession" class="medium"><option value="">všechny</option></select></label>
       <label>Zdroj<select id="fSource" class="medium"><option value="">vše</option><option>NRF52840</option><option>RF_ANALYZER</option><option>BLE_HCI</option><option>WIFI_MONITOR</option><option>TWN4</option><option>GPIO</option><option>WEB</option></select></label>
       <label>RSSI ≥<input id="fRssi" class="small" type="number" placeholder="-80"></label>
       <label>MHz od<input id="fMin" class="small" type="number" placeholder="2400"></label>
       <label>MHz do<input id="fMax" class="small" type="number" placeholder="2500"></label>
-      <button id="capRefresh">Obnovit</button>
       <button id="dbExport">SQLite</button>
+    </div>
+    <div class="chips" style="margin-bottom:8px">
+      <button id="capRefresh">Obnovit</button>
     </div>
     <p class="hint">Klikni na řádek. Vpravo uvidíš, <b>co to je</b> a jestli známe zařízení, nebo jen energii v pásmu.</p>
   </div>
@@ -296,6 +304,14 @@ tr.clickable{cursor:pointer}tr.clickable:hover{background:#132536}tr.selected{ba
   <div class="grid2">
     <div>
       <div class="panel">
+        <div class="panelhead"><h2>Režim zobrazení</h2></div>
+        <p class="hint">Easy nechá nahoře jen SCAN, capture a WATCH. Pro přidá krok sweepu, BLE/Wi-Fi, CSV, PCAP a katalog zařízení.</p>
+        <div class="chips" style="margin-top:8px">
+          <button id="uiEasy" class="activechip">Easy</button>
+          <button id="uiPro">Pro</button>
+        </div>
+      </div>
+      <div class="panel pro-only">
         <div class="panelhead"><h2>Jak sonda měří</h2></div>
         <p class="hint">Jemnější krok = ostřejší obraz, pomalejší sweep. MAX hledá krátké špičky, AVG uklidní šum.</p>
         <div class="chips" style="margin-top:8px">
@@ -311,7 +327,7 @@ tr.clickable{cursor:pointer}tr.clickable:hover{background:#132536}tr.selected{ba
           <label>Vzorek WATCH µs<input id="watchS" class="small" type="number" value="200"></label>
         </div>
       </div>
-      <div class="panel">
+      <div class="panel pro-only">
         <div class="panelhead"><h2>Pozorovatelé s identitou</h2></div>
         <p class="hint">Zapínej jen když chceš inventář okolí. Active BLE scan sám vysílá.</p>
         <div class="chips" style="margin-top:8px">
@@ -321,7 +337,7 @@ tr.clickable{cursor:pointer}tr.clickable:hover{background:#132536}tr.selected{ba
           <button id="wifiStop">Wi-Fi vypnout</button>
         </div>
       </div>
-      <div class="panel">
+      <div class="panel pro-only">
         <div class="panelhead"><h2>Co ukládat do capture</h2></div>
         <div class="chips">
           <label>Práh oblasti Δ dB<input id="aThreshold" class="small" type="number" value="12"></label>
@@ -332,7 +348,7 @@ tr.clickable{cursor:pointer}tr.clickable:hover{background:#132536}tr.selected{ba
       </div>
     </div>
     <div>
-      <div class="panel">
+      <div class="panel pro-only">
         <div class="panelhead"><h2>Záznam a laboratoř</h2></div>
         <p class="hint">CSV je surový sweep. JSONL experimentu přidá markery. Relé spíná napájení štítku.</p>
         <div class="chips" style="margin-top:8px">
@@ -363,6 +379,10 @@ tr.clickable{cursor:pointer}tr.clickable:hover{background:#132536}tr.selected{ba
     <p>Sonda nRF52840 <b>neměří pakety VUSION</b> a <b>nevysílá</b>. Zpětná komunikace je záměr do budoucna, až bude známé PHY. Teď umíme čas, frekvenci, sílu a — pokud běží BLE / Wi-Fi / NFC — i identitu.</p>
   </div>
   <div class="panel">
+    <h3>Easy a Pro</h3>
+    <p>Výchozí je <b>Easy</b>: SCAN, Capture START/STOP, WATCH a záložky Spektrum, Špičky, Capture, Nastavení, Nápověda. <b>Pro</b> (tlačítko nahoře nebo v Nastavení) přidá STEP/dwell/rozsah, BLE/Wi-Fi, CSV, relé, PCAP a katalog zařízení. Volba zůstane v prohlížeči.</p>
+  </div>
+  <div class="panel">
     <h3>Rychlý postup</h3>
     <ol>
       <li>Sonda svítí zeleně. Klikni <b>SCAN</b> — uvidíš spektrum.</li>
@@ -376,6 +396,7 @@ tr.clickable{cursor:pointer}tr.clickable:hover{background:#132536}tr.selected{ba
   <div class="panel">
     <h3>Tlačítka nahoře</h3>
     <table>
+      <tr><td><b>Režim Easy / Pro</b></td><td>Easy schová laboratorní ovládání. Pro je plný panel. Volba se pamatuje v prohlížeči.</td></tr>
       <tr><td><b>Capture START / STOP</b></td><td>Zapíše vše, co teď teče, do SQLite session. Bez START se spektrum jen kreslí, neukládá se do Capture.</td></tr>
       <tr><td><b>Uložit JSONL</b></td><td>Export vybrané nebo právě běžící session.</td></tr>
       <tr><td><b>SCAN</b></td><td>Sonda pořád dokola měří RSSI 2400–2500 MHz.</td></tr>
@@ -392,7 +413,7 @@ tr.clickable{cursor:pointer}tr.clickable:hover{background:#132536}tr.selected{ba
       <tr><td><b>Capture</b></td><td>Seznam událostí + srozumitelný detail: co to je, známe-li zařízení, surová data.</td></tr>
       <tr><td><b>Zařízení</b></td><td>Katalog BLE adres, Wi-Fi MAC/SSID a NFC UID. Klik otevře kartu a umí skočit do capture.</td></tr>
       <tr><td><b>PCAP</b></td><td>Otevřeš .pcap/.pcapng jako ve Wiresharku (tshark). To jsou skutečné rámce, ne RSSI.</td></tr>
-      <tr><td><b>Nastavení</b></td><td>Krok sweepu, BLE/Wi-Fi observer, CSV, relé, markery.</td></tr>
+      <tr><td><b>Nastavení</b></td><td>Easy/Pro. V Pro navíc krok sweepu, BLE/Wi-Fi observer, CSV, relé, markery.</td></tr>
     </table>
   </div>
   <div class="panel">
@@ -861,7 +882,30 @@ tr.clickable{cursor:pointer}tr.clickable:hover{background:#132536}tr.selected{ba
     $("aSweeps").value = String(j.runtime.capture_sweeps);
     $("aRegions").value = String(j.runtime.capture_regions);
   }
+  const UI_MODE_KEY = "waterfall.uiMode";
+  function uiMode() {
+    return localStorage.getItem(UI_MODE_KEY) === "pro" ? "pro" : "easy";
+  }
+  function applyUiMode(mode) {
+    mode = mode === "pro" ? "pro" : "easy";
+    localStorage.setItem(UI_MODE_KEY, mode);
+    document.body.classList.toggle("easy", mode === "easy");
+    document.body.classList.toggle("pro", mode === "pro");
+    $("uiModeBtn").textContent = "Režim: " + (mode === "pro" ? "Pro" : "Easy");
+    $("uiEasy").classList.toggle("activechip", mode === "easy");
+    $("uiPro").classList.toggle("activechip", mode === "pro");
+    if (mode === "easy" && (chip === "ble" || chip === "wifi" || chip === "guess")) {
+      chip = "";
+      document.querySelectorAll(".chip").forEach(x => x.classList.toggle("activechip", x.dataset.chip === ""));
+    }
+    const active = document.querySelector(".tab.active");
+    if (mode === "easy" && active && (active.id === "devicesTab" || active.id === "pcapTab")) {
+      gotoTab("spectrumTab");
+    }
+    setTimeout(() => { drawSpec(); drawWf(); drawTrend(); drawBursts(); }, 20);
+  }
   function gotoTab(id) {
+    if (uiMode() === "easy" && (id === "devicesTab" || id === "pcapTab")) id = "spectrumTab";
     document.querySelectorAll(".tabbtn").forEach(x => x.classList.toggle("active", x.dataset.tab === id));
     document.querySelectorAll(".tab").forEach(x => x.classList.toggle("active", x.id === id));
     if (id === "captureTab") sessions().then(loadEvents);
@@ -922,6 +966,9 @@ tr.clickable{cursor:pointer}tr.clickable:hover{background:#132536}tr.selected{ba
   };
 
   document.querySelectorAll(".tabbtn").forEach(b => b.onclick = () => gotoTab(b.dataset.tab));
+  $("uiModeBtn").onclick = () => applyUiMode(uiMode() === "pro" ? "easy" : "pro");
+  $("uiEasy").onclick = () => applyUiMode("easy");
+  $("uiPro").onclick = () => applyUiMode("pro");
   document.querySelectorAll("[data-cmd]").forEach(b => b.onclick = () => post("/api/command/" + b.dataset.cmd).catch(e => log(e.message)));
   document.querySelectorAll("[data-marker]").forEach(b => b.onclick = () => post("/api/marker/" + encodeURIComponent(b.dataset.marker)).catch(e => log(e.message)));
   document.querySelectorAll(".chip").forEach(b => b.onclick = () => {
@@ -1025,6 +1072,7 @@ tr.clickable{cursor:pointer}tr.clickable:hover{background:#132536}tr.selected{ba
 
   setInterval(() => { $("mAge").textContent = lastData ? ((Date.now() - lastData) / 1000).toFixed(1) + " s" : "—"; }, 250);
   window.onresize = () => { drawSpec(); drawWf(); drawTrend(); drawBursts(); };
+  applyUiMode(uiMode());
   settings(); sessions(); connect();
   drawSpec(); drawWf(); drawTrend(); drawBursts();
 })();

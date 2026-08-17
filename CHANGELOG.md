@@ -1,7 +1,14 @@
 # WaterFall CHANGELOG
 
 Formát: `X.Y.Z — YYYY-MM-DD`. Aktuální verze je v [`VERSION`](VERSION).
-Git tag odpovídá verzi (`v0.4.7`).
+Git tag odpovídá verzi (`v0.4.8`).
+
+## 0.4.8 — 2026-08-17
+
+- **Easy / Pro**: výchozí Easy (SCAN, capture, WATCH, Spektrum / Špičky / Capture); Pro přidá STEP, BLE/Wi-Fi, CSV, PCAP, zařízení; volba v `localStorage`;
+- host skládá USB řádky až do `\n` (timeout 3 s), takže utržený `SWEEP` z 0,25 s readline už neshodí CDC;
+- krátký USB glitch se zpracuje uvnitř otevřeného portu (`PROBE GLITCH`), bez dropu DTR;
+- po znovuotevření portu se vždy obnoví SCAN nebo WATCH (firmware po DTR SCAN zastaví).
 
 ## 0.4.7 — 2026-08-17
 
