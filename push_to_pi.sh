@@ -70,6 +70,7 @@ else
     "$HERE/VERSION" \
     "$HERE/watch_probe_state.sh" \
     "$HERE/TROUBLESHOOTING.md" \
+    "$HERE/GUIDE.md" \
     "$HERE/udev" \
     "$TARGET:$REMOTE_DIR/"
 fi

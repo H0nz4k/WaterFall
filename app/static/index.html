@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>WaterFall 0.4.8</title>
+<title>WaterFall 0.4.9</title>
 <style>
 :root{color-scheme:dark;--bg:#071019;--panel:#0c1722;--panel2:#101d29;--border:#263746;--text:#e8f0f7;--muted:#8ca1b4;--accent:#46c7ff;--good:#5ce08a;--warn:#ffd166;--bad:#ff6b6b;--purple:#c792ea}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,Segoe UI,Arial,sans-serif;font-size:13px}
@@ -43,6 +43,7 @@ tr.clickable{cursor:pointer}tr.clickable:hover{background:#132536}tr.selected{ba
 .eventlist{max-height:200px;overflow:auto;font-family:Consolas,monospace;font-size:10px;white-space:pre-wrap}
 .note{padding:8px;border-left:3px solid var(--warn);background:#101a22;color:#cbd9e5}.goodnote{border-left-color:var(--good)}
 .region{padding:6px;border:1px solid var(--border);border-radius:6px;margin:4px 0;background:#0a151f;cursor:pointer}.region strong{color:var(--accent)}
+.region.live{border-color:var(--accent)}.region.stale{opacity:.78}
 .inspect{position:fixed;right:16px;bottom:16px;width:280px;background:var(--panel);border:1px solid var(--accent);border-radius:10px;padding:10px;z-index:50;box-shadow:0 8px 30px #0008}
 .help h3{margin:16px 0 6px;font-size:14px}.help p,.help li{color:#c5d4e0;line-height:1.45}.help code{background:#08131d;padding:1px 5px;border-radius:4px}
 .help table td{white-space:normal}
@@ -59,7 +60,7 @@ body.pro button.modebtn{border-color:var(--accent);color:var(--accent)}
 <header>
   <div class="top">
     <div>
-      <h1>WaterFall <span>v0.4.8</span></h1>
+      <h1>WaterFall <span>v0.4.9</span></h1>
       <div class="sub">Co se děje v pásmu 2,4 GHz · špičky · capture</div>
     </div>
     <div class="status">
@@ -144,7 +145,14 @@ body.pro button.modebtn{border-color:var(--accent);color:var(--accent)}
   </div>
   <div class="grid2">
     <div class="panel">
-      <div class="panelhead"><h2>Co právě ruší pásmo</h2><span class="mini">odhad podle energie, ne dekódovaný paket</span></div>
+      <div class="panelhead">
+        <h2>Co ruší pásmo</h2>
+        <div class="chips">
+          <button id="regionLogOn" class="activechip">Logovat nové</button>
+          <button id="regionLogClear">Vymazat log</button>
+        </div>
+      </div>
+      <p class="hint">Živý odhad skáče se sweepem. Zapnutý log nechá položku, i když zmizí — klikni, až budeš chtít. Pořád je to jen energie, ne paket.</p>
       <div id="regions"></div>
     </div>
     <div class="panel">
@@ -374,81 +382,69 @@ body.pro button.modebtn{border-color:var(--accent);color:var(--accent)}
 
 <section id="helpTab" class="tab help">
   <div class="panel">
-    <h2>K čemu WaterFall je</h2>
-    <p>Chceš vidět, <b>co se děje v pásmu 2,4 GHz</b>, uložit to a u každé události poznat, jestli známe zařízení, nebo jen energii. Postup je stejný jako ve Wiresharku: spusť capture, filtruj, klikni na řádek, přečti detail.</p>
-    <p>Sonda nRF52840 <b>neměří pakety VUSION</b> a <b>nevysílá</b>. Zpětná komunikace je záměr do budoucna, až bude známé PHY. Teď umíme čas, frekvenci, sílu a — pokud běží BLE / Wi-Fi / NFC — i identitu.</p>
+    <h2>Co WaterFall dělá</h2>
+    <p>Je to oko do pásma <b>2400–2500 MHz</b>. Sonda nRF52840 měří jen <b>energii (RSSI)</b> — čas, frekvenci a sílu. <b>Nečte pakety VUSION</b> a <b>nevysílá</b>. Když uvidíš špičku na 2431 nebo 2455 MHz, víš že tam něco pípá. Nevíš, jestli to je štítek, Wi-Fi, BLE, nebo mikrovlnka, dokud to nepotvrdíš jiným pozorovatelem (BLE / Wi-Fi / NFC).</p>
+  </div>
+  <div class="panel">
+    <h3>Jak číst obrazovku</h3>
+    <ol>
+      <li><b>Spektrum</b> nahoře — čára přes celé pásmo. Výška = síla. Žlutá čárkovaná čára je šum (median).</li>
+      <li><b>Waterfall</b> — čas jde dolů, frekvence doprava, světlejší = silnější. Krátké čárky jsou krátké bursty.</li>
+      <li><b>Co ruší pásmo</b> — odhad z energie v aktuálním sweepu. Skáče, protože signál často trvá kratší dobu než jeden průchod pásmem.</li>
+      <li><b>Logovat nové</b> (zapnuté) — když rušič zmizí, zůstane pod čarou „Log“. Klikni, až se trefíš. Otevře se karta s MHz: <b>Zapsat</b> do Špiček, <b>WATCH sem</b>, nebo Capture.</li>
+      <li><b>WATCH bursty</b> ožijí až spustíš WATCH na jedné frekvenci. SCAN mezitím stojí.</li>
+    </ol>
+  </div>
+  <div class="panel">
+    <h3>První sezení — 5 kroků</h3>
+    <ol>
+      <li>Sonda svítí zeleně. Nech běžet <b>SCAN</b> (po připojení se spouští sám).</li>
+      <li>Koukni na waterfall: kde jsou světlé svislé pruhy, tam se něco opakuje.</li>
+      <li>V <b>Co ruší pásmo</b> nech zapnuté <b>Logovat nové</b>. Až uvidíš zajímavou MHz, klikni — i když už z živého seznamu zmizela.</li>
+      <li>Na kartě klikni <b>Zapsat</b>. V záložce <b>Špičky</b> ji pojmenuj (třeba „štítek na stole“) a případně <b>Držet (WATCH)</b>.</li>
+      <li>Chceš to uložit v čase? Nahoře vyplň název session a <b>START</b> capture. <b>STOP</b> až skončíš. V Capture klikni na řádek — vpravo je, jestli známe zařízení, nebo jen energii.</li>
+    </ol>
+  </div>
+  <div class="panel">
+    <h3>Kdy použít SCAN a kdy WATCH</h3>
+    <p><b>SCAN</b> je přehled celého pásma (~2× za sekundu). Hodí se na „kde to pípá?“.</p>
+    <p><b>WATCH</b> opustí přehled a sedí na jedné MHz. Hodí se na časování: přiložení NFC, zapnutí relé, krátký burst. V Easy zadáš jen MHz a WATCH.</p>
+    <p>Nejde obojí naráz — sonda má jedno rádio.</p>
   </div>
   <div class="panel">
     <h3>Easy a Pro</h3>
-    <p>Výchozí je <b>Easy</b>: SCAN, Capture START/STOP, WATCH a záložky Spektrum, Špičky, Capture, Nastavení, Nápověda. <b>Pro</b> (tlačítko nahoře nebo v Nastavení) přidá STEP/dwell/rozsah, BLE/Wi-Fi, CSV, relé, PCAP a katalog zařízení. Volba zůstane v prohlížeči.</p>
-  </div>
-  <div class="panel">
-    <h3>Rychlý postup</h3>
-    <ol>
-      <li>Sonda svítí zeleně. Klikni <b>SCAN</b> — uvidíš spektrum.</li>
-      <li>Klikni do grafu na špičku → <b>Zapsat</b>, nebo počkej až se zapíše sama.</li>
-      <li>V záložce Špičky ji pojmenuj a klikni <b>Držet</b>.</li>
-      <li>Dej session jméno a klikni <b>START</b> capture.</li>
-      <li>V záložce Capture filtruj a otevři detail řádku.</li>
-      <li><b>STOP</b> a ulož JSONL nebo SQLite.</li>
-    </ol>
+    <p>Výchozí je <b>Easy</b>: SCAN, capture, WATCH, Spektrum / Špičky / Capture. <b>Pro</b> (tlačítko nahoře) přidá krok sweepu, BLE/Wi-Fi observer, CSV, relé, PCAP a katalog zařízení. Volba zůstane v prohlížeči.</p>
   </div>
   <div class="panel">
     <h3>Tlačítka nahoře</h3>
     <table>
-      <tr><td><b>Režim Easy / Pro</b></td><td>Easy schová laboratorní ovládání. Pro je plný panel. Volba se pamatuje v prohlížeči.</td></tr>
-      <tr><td><b>Capture START / STOP</b></td><td>Zapíše vše, co teď teče, do SQLite session. Bez START se spektrum jen kreslí, neukládá se do Capture.</td></tr>
-      <tr><td><b>Uložit JSONL</b></td><td>Export vybrané nebo právě běžící session.</td></tr>
-      <tr><td><b>SCAN</b></td><td>Sonda pořád dokola měří RSSI 2400–2500 MHz.</td></tr>
-      <tr><td><b>Jeden sweep</b></td><td>Jedno projetí pásma.</td></tr>
-      <tr><td><b>WATCH</b></td><td>Přestane jet celé pásmo a hlídá jednu frekvenci. Hodí se na časování (NFC wake, relé).</td></tr>
-      <tr><td><b>Filtr</b></td><td>Hledá v shrnutí, zařízení i raw textu. Čipy v Capture zúží typ (burst, BLE, NFC…).</td></tr>
+      <tr><td><b>Režim Easy / Pro</b></td><td>Schová nebo ukáže laboratorní ovládání.</td></tr>
+      <tr><td><b>Capture START / STOP</b></td><td>Bez START se spektrum jen kreslí. Se START se události zapisují do SQLite.</td></tr>
+      <tr><td><b>SCAN</b></td><td>Dokola RSSI 2400–2500 MHz.</td></tr>
+      <tr><td><b>WATCH</b></td><td>Jedna frekvence, bursty v čase.</td></tr>
     </table>
   </div>
   <div class="panel">
     <h3>Záložky</h3>
     <table>
-      <tr><td><b>Spektrum</b></td><td>Živý pohled do pásma. Klik na frekvenci otevře kartu: zapsat špičku, filtrovat, nebo WATCH.</td></tr>
-      <tr><td><b>Špičky</b></td><td>Seznam silných signálů. Automaticky z nadprahových oblastí a WATCH burstů. Pojmenuj a drž jednu frekvenci.</td></tr>
-      <tr><td><b>Capture</b></td><td>Seznam událostí + srozumitelný detail: co to je, známe-li zařízení, surová data.</td></tr>
-      <tr><td><b>Zařízení</b></td><td>Katalog BLE adres, Wi-Fi MAC/SSID a NFC UID. Klik otevře kartu a umí skočit do capture.</td></tr>
-      <tr><td><b>PCAP</b></td><td>Otevřeš .pcap/.pcapng jako ve Wiresharku (tshark). To jsou skutečné rámce, ne RSSI.</td></tr>
-      <tr><td><b>Nastavení</b></td><td>Easy/Pro. V Pro navíc krok sweepu, BLE/Wi-Fi observer, CSV, relé, markery.</td></tr>
+      <tr><td><b>Spektrum</b></td><td>Živý pohled + log rušiců. Klik na MHz otevře kartu.</td></tr>
+      <tr><td><b>Špičky</b></td><td>Trvalý seznam (i po obnovení stránky). Pojmenuj, drž WATCH. Silné oblasti se sem zapisují samy.</td></tr>
+      <tr><td><b>Capture</b></td><td>Deník sessioní. Detail řekne: energie, nebo známé zařízení.</td></tr>
+      <tr><td><b>Zařízení / PCAP</b></td><td>Jen v Pro. Identita z BLE/Wi-Fi/NFC, nebo skutečné pakety z Wiresharku.</td></tr>
     </table>
   </div>
   <div class="panel">
-    <h3>Typy událostí — co znamenají</h3>
+    <h3>Typy událostí</h3>
     <table>
-      <tr><td><b>RF_SWEEP</b></td><td>Jeden průchod pásmem. Víme peak MHz a RSSI. <b>Zařízení neznáme.</b></td></tr>
-      <tr><td><b>RF_BURST</b></td><td>Nadprahová aktivita na jedné frekvenci (WATCH). Čas a síla. <b>Zařízení neznáme.</b></td></tr>
-      <tr><td><b>RF_REGION</b></td><td>Odhad: „vypadá jako Wi-Fi kanál“ nebo „jako BLE advertising“. Není to paket.</td></tr>
-      <tr><td><b>BLE_ADV</b></td><td>Dekódovaný BLE advertisement: adresa, jméno, manufacturer data. Adresa může být náhodná.</td></tr>
-      <tr><td><b>WIFI_FRAME</b></td><td>Skutečný 802.11 rámec z monitor mode: MAC, SSID, kanál, hex. Šifra zůstává šifrou.</td></tr>
-      <tr><td><b>NFC_*</b></td><td>Přiložení / ztráta tagu a UID z TWN4.</td></tr>
-      <tr><td><b>CAPTURE_ / POWER_ / marker</b></td><td>Tvoje značky v časové ose, ať jde experiment znovu srovnat.</td></tr>
-    </table>
-  </div>
-  <div class="panel">
-    <h3>Špičky</h3>
-    <p>Když je ve spektru silný signál, WaterFall ho zapíše sem. Můžeš ho pojmenovat a <b>držet</b> — to spustí WATCH na té MHz. Pokud ve stejné chvíli běží BLE nebo Wi-Fi monitor a sedí frekvence, uvidíš tip na zařízení. Samotná špička pořád není identita a sonda na ni nevysílá.</p>
-  </div>
-  <div class="panel">
-    <h3>Filtry v Capture</h3>
-    <p>Horní pole hledá text. Čipy nastaví typ. Dole můžeš zúžit session, zdroj, minimální RSSI a rozsah MHz. Klik ve spektru vyplní MHz za tebe.</p>
-    <p>PCAP má vlastní Wireshark display filter, například <code>btle</code>, <code>wlan</code>, <code>wpan</code>.</p>
-  </div>
-  <div class="panel">
-    <h3>Ukládání</h3>
-    <table>
-      <tr><td><b>Capture SQLite</b></td><td>Hlavní deník sessioní a událostí. Snapshot stáhneš tlačítkem SQLite.</td></tr>
-      <tr><td><b>JSONL</b></td><td>Jedna session, jeden soubor, hodí se do další analýzy.</td></tr>
-      <tr><td><b>CSV</b></td><td>Jen RF sweep body, bez BLE/NFC.</td></tr>
-      <tr><td><b>Experiment JSONL</b></td><td>Markery a laboratorní časová osa.</td></tr>
+      <tr><td><b>RF_SWEEP</b></td><td>Jeden průchod pásmem. Peak MHz a RSSI. Zařízení neznáme.</td></tr>
+      <tr><td><b>RF_BURST</b></td><td>WATCH: čas a síla na jedné MHz. Zařízení neznáme.</td></tr>
+      <tr><td><b>RF_REGION</b></td><td>Odhad „vypadá jako Wi-Fi / BLE“. Není to paket.</td></tr>
+      <tr><td><b>BLE_ADV / WIFI_FRAME / NFC_*</b></td><td>Až když běží observer v Pro. Tady už může být adresa, SSID nebo UID.</td></tr>
     </table>
   </div>
   <div class="panel">
     <h3>Čeho se WaterFall zatím nedotýká</h3>
-    <p>Není to SDR a nečte proprietární VUSION payload. Neumí z RSSI poznat MAC štítku ani poslat odpověď do éteru. Až bude známá modulace a framing, může přibýt packet RX a později i řízená zpětná komunikace. Teď platí: <b>nejdřív vidět a uložit, potom teprve mluvit.</b></p>
+    <p>Není to SDR. Z RSSI nepozná MAC štítku a do éteru nic nepošle. Až bude známá modulace VUSION, může přibýt packet RX a později řízená odpověď. Teď platí: <b>nejdřív vidět a uložit, potom teprve mluvit.</b></p>
   </div>
 </section>
 </main>
@@ -597,14 +593,79 @@ body.pro button.modebtn{border-color:var(--accent);color:var(--accent)}
       el.onclick = () => showInspect(Number(el.dataset.freq));
     });
   }
-  function regions(rows) {
-    summary._regions = rows || [];
-    $("regions").innerHTML = rows?.length
-      ? rows.map(r => `<div class="region" data-freq="${r.peak_freq_mhz}"><strong>${esc(r.label)}</strong><br>${r.start_mhz}–${r.end_mhz} MHz · peak ${r.peak_freq_mhz} / ${r.peak_rssi_dbm} dBm<div class="mini">${esc(r.explanation)}</div></div>`).join("")
-      : '<div class="mini">Nic nad prahem. Pásmo vypadá klidně, nebo zvyš citlivost v Nastavení.</div>';
+  const REGION_LOG_KEY = "waterfall.regionLog";
+  let regionLogOn = localStorage.getItem("waterfall.regionLogOn") !== "off";
+  let regionLog = [];
+  try { regionLog = JSON.parse(localStorage.getItem(REGION_LOG_KEY) || "[]"); } catch { regionLog = []; }
+  function saveRegionLog() {
+    localStorage.setItem(REGION_LOG_KEY, JSON.stringify(regionLog.slice(0, 40)));
+    localStorage.setItem("waterfall.regionLogOn", regionLogOn ? "on" : "off");
+  }
+  function ago(ts) {
+    const s = Math.max(0, (Date.now() - ts) / 1000);
+    if (s < 1.2) return "teď";
+    if (s < 60) return "před " + s.toFixed(1) + " s";
+    return "před " + Math.round(s / 60) + " min";
+  }
+  function regionCard(r, live) {
+    const seen = r.seen || 1;
+    const best = r.best ?? r.peak_rssi_dbm;
+    const age = live ? "teď ve sweepu" : ago(r.last || Date.now());
+    return `<div class="region ${live ? "live" : "stale"}" data-freq="${r.peak_freq_mhz}"><strong>${esc(r.label)}</strong><br>${r.start_mhz}–${r.end_mhz} MHz · peak ${r.peak_freq_mhz} / ${r.peak_rssi_dbm} dBm<div class="mini">${age} · ×${seen} · nejsilnější ${best} dBm</div></div>`;
+  }
+  function paintRegions() {
+    const liveRows = summary._regions || [];
+    const liveSet = new Set(liveRows.map(r => r.peak_freq_mhz));
+    let html = "";
+    if (liveRows.length) {
+      html += liveRows.map(r => {
+        const logged = regionLog.find(x => x.peak_freq_mhz === r.peak_freq_mhz) || r;
+        return regionCard({ ...logged, ...r }, true);
+      }).join("");
+    } else {
+      html += '<div class="mini">Teď nic nad prahem.</div>';
+    }
+    if (regionLogOn) {
+      const stale = regionLog.filter(x => !liveSet.has(x.peak_freq_mhz));
+      if (stale.length) {
+        html += '<div class="mini" style="margin:10px 0 4px">Log — zmizelé, pořád klikni</div>';
+        html += stale.map(r => regionCard(r, false)).join("");
+      }
+    }
+    $("regions").innerHTML = html;
     $("regions").querySelectorAll(".region").forEach(el => {
       el.onclick = () => showInspect(Number(el.dataset.freq));
     });
+    $("regionLogOn").classList.toggle("activechip", regionLogOn);
+  }
+  function regions(rows) {
+    summary._regions = rows || [];
+    const now = Date.now();
+    if (regionLogOn) {
+      for (const r of summary._regions) {
+        let item = regionLog.find(x => x.peak_freq_mhz === r.peak_freq_mhz);
+        if (!item) {
+          regionLog.unshift({
+            peak_freq_mhz: r.peak_freq_mhz, start_mhz: r.start_mhz, end_mhz: r.end_mhz,
+            label: r.label, explanation: r.explanation, peak_rssi_dbm: r.peak_rssi_dbm,
+            seen: 1, first: now, last: now, best: r.peak_rssi_dbm,
+          });
+        } else {
+          item.last = now;
+          item.seen += 1;
+          item.start_mhz = r.start_mhz;
+          item.end_mhz = r.end_mhz;
+          item.label = r.label;
+          item.explanation = r.explanation;
+          item.peak_rssi_dbm = r.peak_rssi_dbm;
+          if (r.peak_rssi_dbm > item.best) item.best = r.peak_rssi_dbm;
+        }
+      }
+      regionLog.sort((a, b) => b.last - a.last);
+      if (regionLog.length > 40) regionLog.length = 40;
+      saveRegionLog();
+    }
+    paintRegions();
   }
   function rssiAt(freq) {
     const p = latest.find(x => x.freq_mhz === freq);
@@ -969,6 +1030,16 @@ body.pro button.modebtn{border-color:var(--accent);color:var(--accent)}
   $("uiModeBtn").onclick = () => applyUiMode(uiMode() === "pro" ? "easy" : "pro");
   $("uiEasy").onclick = () => applyUiMode("easy");
   $("uiPro").onclick = () => applyUiMode("pro");
+  $("regionLogOn").onclick = () => {
+    regionLogOn = !regionLogOn;
+    saveRegionLog();
+    paintRegions();
+  };
+  $("regionLogClear").onclick = () => {
+    regionLog = [];
+    saveRegionLog();
+    paintRegions();
+  };
   document.querySelectorAll("[data-cmd]").forEach(b => b.onclick = () => post("/api/command/" + b.dataset.cmd).catch(e => log(e.message)));
   document.querySelectorAll("[data-marker]").forEach(b => b.onclick = () => post("/api/marker/" + encodeURIComponent(b.dataset.marker)).catch(e => log(e.message)));
   document.querySelectorAll(".chip").forEach(b => b.onclick = () => {
@@ -1073,6 +1144,7 @@ body.pro button.modebtn{border-color:var(--accent);color:var(--accent)}
   setInterval(() => { $("mAge").textContent = lastData ? ((Date.now() - lastData) / 1000).toFixed(1) + " s" : "—"; }, 250);
   window.onresize = () => { drawSpec(); drawWf(); drawTrend(); drawBursts(); };
   applyUiMode(uiMode());
+  paintRegions();
   settings(); sessions(); connect();
   drawSpec(); drawWf(); drawTrend(); drawBursts();
 })();

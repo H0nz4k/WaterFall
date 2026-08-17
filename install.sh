@@ -45,6 +45,7 @@ copy_if_present "$SOURCE_DIR/run_server.py" "$APP_DIR/run_server.py"
 copy_if_present "$SOURCE_DIR/VERSION" "$APP_DIR/VERSION"
 copy_if_present "$SOURCE_DIR/watch_probe_state.sh" "$APP_DIR/watch_probe_state.sh"
 copy_if_present "$SOURCE_DIR/TROUBLESHOOTING.md" "$APP_DIR/TROUBLESHOOTING.md"
+copy_if_present "$SOURCE_DIR/GUIDE.md" "$APP_DIR/GUIDE.md"
 copy_if_present "$SOURCE_DIR/udev" "$APP_DIR/udev"
 chmod +x "$APP_DIR/watch_probe_state.sh" 2>/dev/null || true
 

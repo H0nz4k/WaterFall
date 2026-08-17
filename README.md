@@ -2,7 +2,7 @@
 
 Webový RF capture / analyzer pro výzkum **OpenVusion** (SES-imagotag VUSION a okolní 2,4 GHz pásmo).
 
-**Verze:** `0.4.8` · soubor [`VERSION`](VERSION) · historie v [`CHANGELOG.md`](CHANGELOG.md)  
+**Verze:** `0.4.9` · soubor [`VERSION`](VERSION) · historie v [`CHANGELOG.md`](CHANGELOG.md)  
 **Sonda:** [OpenVusion RF Probe](https://github.com/H0nz4k/OpenVusion_RF_Probe) 0.7.2 na nRF52840 Dongle  
 **Host:** Raspberry Pi / Linux · web na portu `8088`
 
@@ -32,6 +32,8 @@ Build a flash donglu: [BUILD_FLASH.md](https://github.com/H0nz4k/OpenVusion_RF_P
 3. V **Špičkách** ji pojmenuj a klikni **Držet**
 4. **START** capture, v Capture otevři detail
 5. **STOP** a ulož JSONL
+
+Podrobný návod: [`GUIDE.md`](GUIDE.md) (stejný text je v záložce **Nápověda** ve webu).
 
 ## Update z PC přes SSH
 
@@ -85,7 +87,7 @@ python run_server.py
 
 - aktuální číslo je v [`VERSION`](VERSION) a v `app/main.py` (`VERSION`)
 - každá viditelná změna patří do [`CHANGELOG.md`](CHANGELOG.md) nahoře, ve formátu `X.Y.Z — YYYY-MM-DD`
-- tag v gitu: `v0.4.8`
+- tag v gitu: `v0.4.9`
 
 | Část | Význam |
 |---|---|
@@ -93,7 +95,7 @@ python run_server.py
 | minor | nová funkce (Špičky, Capture, PCAP…) |
 | patch | UI, opravy, dokumentace |
 
-Firmware sondy se verzuje zvlášť. WaterFall 0.4.8 očekává Probe **0.7.2** (`WATERFALL_COMPAT=0.4.1`).
+Firmware sondy se verzuje zvlášť. WaterFall 0.4.9 očekává Probe **0.7.2** (`WATERFALL_COMPAT=0.4.1`).
 
 ## Config — důležité
 

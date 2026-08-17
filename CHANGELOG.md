@@ -1,7 +1,13 @@
 # WaterFall CHANGELOG
 
 Formát: `X.Y.Z — YYYY-MM-DD`. Aktuální verze je v [`VERSION`](VERSION).
-Git tag odpovídá verzi (`v0.4.8`).
+Git tag odpovídá verzi (`v0.4.9`).
+
+## 0.4.9 — 2026-08-17
+
+- **Logovat nové** u „Co ruší pásmo“: položka zůstane klikatelná, i když živý odhad zmizí;
+- Nápověda je praktický návod (SCAN vs WATCH, jak chytit skákající rušič);
+- [`GUIDE.md`](GUIDE.md) stejný popis mimo web.
 
 ## 0.4.8 — 2026-08-17
 
