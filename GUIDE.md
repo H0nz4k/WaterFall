@@ -10,7 +10,8 @@ Stejný návod je ve webu v záložce **Nápověda**.
 2. **Waterfall** — čas dolů, frekvence doprava, světlejší = silnější. Krátké čárky jsou krátké bursty.
 3. **Co ruší pásmo** — odhad z energie v aktuálním sweepu. Skáče, protože signál často trvá kratší dobu než jeden průchod pásmem.
 4. **Logovat nové** (zapnuté) — když rušič zmizí, zůstane v logu. Klikni, až se trefíš. Karta: **Zapsat** do Špiček, **WATCH sem**, nebo Capture.
-5. **WATCH bursty** ožijí až spustíš WATCH na jedné frekvenci. SCAN mezitím stojí.
+5. **Ignorovat Wi-Fi** — schová široké oblasti, které jen vypadají jako Wi-Fi kanál. SSID z RSSI neznáme. Úzké špičky (štítek) zůstanou.
+6. **WATCH bursty** ožijí až spustíš WATCH na jedné frekvenci. SCAN mezitím stojí.
 
 ## První sezení
 

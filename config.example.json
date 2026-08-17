@@ -11,7 +11,8 @@
   "analysis": {
     "rf_region_threshold_db": 12.0,
     "capture_sweeps": true,
-    "capture_regions": true
+    "capture_regions": true,
+    "ignore_wifi_like": false
   },
   "rf_probe": {
     "enabled": true,

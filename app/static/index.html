@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>WaterFall 0.4.10</title>
+<title>WaterFall 0.4.11</title>
 <style>
 :root{color-scheme:dark;--bg:#071019;--panel:#0c1722;--panel2:#101d29;--border:#263746;--text:#e8f0f7;--muted:#8ca1b4;--accent:#46c7ff;--good:#5ce08a;--warn:#ffd166;--bad:#ff6b6b;--purple:#c792ea}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,Segoe UI,Arial,sans-serif;font-size:13px}
@@ -54,13 +54,15 @@ body.easy .tabbtn[data-tab="devicesTab"],body.easy .tabbtn[data-tab="pcapTab"]{d
 body.easy .metrics{grid-template-columns:repeat(7,minmax(90px,1fr))}
 button.modebtn{border-radius:999px;background:var(--panel);padding:4px 8px;font-size:10px}
 body.pro button.modebtn{border-color:var(--accent);color:var(--accent)}
+label.chk{display:inline-flex;align-items:center;gap:5px;color:var(--muted);font-size:10px;cursor:pointer}
+label.chk input{accent-color:var(--accent)}
 </style>
 </head>
 <body class="easy">
 <header>
   <div class="top">
     <div>
-      <h1>WaterFall <span>v0.4.10</span></h1>
+      <h1>WaterFall <span>v0.4.11</span></h1>
       <div class="sub">Co se děje v pásmu 2,4 GHz · špičky · capture</div>
     </div>
     <div class="status">
@@ -155,10 +157,11 @@ body.pro button.modebtn{border-color:var(--accent);color:var(--accent)}
         <h2>Co ruší pásmo</h2>
         <div class="chips">
           <button id="regionLogOn" class="activechip">Logovat nové</button>
+          <label class="chk"><input type="checkbox" id="ignoreWifi"> Ignorovat Wi-Fi</label>
           <button id="regionLogClear">Vymazat log</button>
         </div>
       </div>
-      <p class="hint">Živý odhad skáče se sweepem. Zapnutý log nechá položku, i když zmizí — klikni, až budeš chtít. Pořád je to jen energie, ne paket.</p>
+      <p class="hint">Živý odhad skáče se sweepem. Zapnutý log nechá položku, i když zmizí. <b>Ignorovat Wi-Fi</b> schová široké oblasti, které jen vypadají jako Wi-Fi kanál (neznáme SSID). Úzké špičky zůstanou.</p>
       <div id="regions"></div>
     </div>
     <div class="panel">
@@ -396,7 +399,7 @@ body.pro button.modebtn{border-color:var(--accent);color:var(--accent)}
     <ol>
       <li><b>Spektrum</b> nahoře — čára přes celé pásmo. Výška = síla. Žlutá čárkovaná čára je šum (median).</li>
       <li><b>Waterfall</b> — čas jde dolů, frekvence doprava, světlejší = silnější. Krátké čárky jsou krátké bursty.</li>
-      <li><b>Co ruší pásmo</b> — odhad z energie v aktuálním sweepu. Skáče, protože signál často trvá kratší dobu než jeden průchod pásmem.</li>
+      <li><b>Co ruší pásmo</b> — odhad z energie v aktuálním sweepu. Skáče, protože signál často trvá kratší dobu než jeden průchod pásmem. <b>Ignorovat Wi-Fi</b> schová široké „vypadá jako Wi-Fi kanál“ — SSID z energie neznáme.</li>
       <li><b>Logovat nové</b> (zapnuté) — když rušič zmizí, zůstane pod čarou „Log“. Klikni, až se trefíš. Otevře se karta s MHz: <b>Zapsat</b> do Špiček, <b>WATCH sem</b>, nebo Capture.</li>
       <li><b>WATCH bursty</b> ožijí až spustíš WATCH na jedné frekvenci. SCAN mezitím stojí.</li>
     </ol>
@@ -558,7 +561,7 @@ body.pro button.modebtn{border-color:var(--accent);color:var(--accent)}
       i ? S.lineTo(x, y(p.rssi_dbm)) : S.moveTo(x, y(p.rssi_dbm));
     });
     S.stroke();
-    for (const rg of (summary._regions || [])) {
+    for (const rg of visibleRegions(summary._allRegions || summary._regions || [])) {
       const x = a.x0 + ((rg.peak_freq_mhz - 2400) / 100) * (a.x1 - a.x0);
       S.fillStyle = "#ff6b6b"; S.beginPath(); S.arc(x, y(rg.peak_rssi_dbm), 3.5 * r, 0, Math.PI * 2); S.fill();
     }
@@ -619,11 +622,28 @@ body.pro button.modebtn{border-color:var(--accent);color:var(--accent)}
   }
   const REGION_LOG_KEY = "waterfall.regionLog";
   let regionLogOn = localStorage.getItem("waterfall.regionLogOn") !== "off";
+  let ignoreWifi = localStorage.getItem("waterfall.ignoreWifi") === "on";
   let regionLog = [];
   try { regionLog = JSON.parse(localStorage.getItem(REGION_LOG_KEY) || "[]"); } catch { regionLog = []; }
+  function isWifiLike(r) {
+    return r && (r.protocol_hint === "WIFI_LIKE" || String(r.label || "").startsWith("Wi-Fi channel"));
+  }
+  function visibleRegions(rows) {
+    rows = rows || [];
+    return ignoreWifi ? rows.filter(r => !isWifiLike(r)) : rows;
+  }
   function saveRegionLog() {
     localStorage.setItem(REGION_LOG_KEY, JSON.stringify(regionLog.slice(0, 40)));
     localStorage.setItem("waterfall.regionLogOn", regionLogOn ? "on" : "off");
+    localStorage.setItem("waterfall.ignoreWifi", ignoreWifi ? "on" : "off");
+  }
+  function setIgnoreWifi(on) {
+    ignoreWifi = !!on;
+    $("ignoreWifi").checked = ignoreWifi;
+    saveRegionLog();
+    post("/api/settings/runtime", { ignore_wifi_like: ignoreWifi }).catch(() => {});
+    paintRegions();
+    drawSpec();
   }
   function ago(ts) {
     const s = Math.max(0, (Date.now() - ts) / 1000);
@@ -638,7 +658,7 @@ body.pro button.modebtn{border-color:var(--accent);color:var(--accent)}
     return `<div class="region ${live ? "live" : "stale"}" data-freq="${r.peak_freq_mhz}"><strong>${esc(r.label)}</strong><br>${r.start_mhz}–${r.end_mhz} MHz · peak ${r.peak_freq_mhz} / ${r.peak_rssi_dbm} dBm<div class="mini">${age} · ×${seen} · nejsilnější ${best} dBm</div></div>`;
   }
   function paintRegions() {
-    const liveRows = summary._regions || [];
+    const liveRows = visibleRegions(summary._allRegions || summary._regions || []);
     const liveSet = new Set(liveRows.map(r => r.peak_freq_mhz));
     let html = "";
     if (liveRows.length) {
@@ -647,10 +667,12 @@ body.pro button.modebtn{border-color:var(--accent);color:var(--accent)}
         return regionCard({ ...logged, ...r }, true);
       }).join("");
     } else {
-      html += '<div class="mini">Teď nic nad prahem.</div>';
+      html += ignoreWifi
+        ? '<div class="mini">Teď nic nad prahem (Wi-Fi odhad schovaný).</div>'
+        : '<div class="mini">Teď nic nad prahem.</div>';
     }
     if (regionLogOn) {
-      const stale = regionLog.filter(x => !liveSet.has(x.peak_freq_mhz));
+      const stale = regionLog.filter(x => !liveSet.has(x.peak_freq_mhz) && !isWifiLike(x));
       if (stale.length) {
         html += '<div class="mini" style="margin:10px 0 4px">Log — zmizelé, pořád klikni</div>';
         html += stale.map(r => regionCard(r, false)).join("");
@@ -661,9 +683,11 @@ body.pro button.modebtn{border-color:var(--accent);color:var(--accent)}
       el.onclick = () => showInspect(Number(el.dataset.freq));
     });
     $("regionLogOn").classList.toggle("activechip", regionLogOn);
+    $("ignoreWifi").checked = ignoreWifi;
   }
   function regions(rows) {
-    summary._regions = rows || [];
+    summary._allRegions = rows || [];
+    summary._regions = visibleRegions(summary._allRegions);
     const now = Date.now();
     if (regionLogOn) {
       for (const r of summary._regions) {
@@ -672,6 +696,7 @@ body.pro button.modebtn{border-color:var(--accent);color:var(--accent)}
           regionLog.unshift({
             peak_freq_mhz: r.peak_freq_mhz, start_mhz: r.start_mhz, end_mhz: r.end_mhz,
             label: r.label, explanation: r.explanation, peak_rssi_dbm: r.peak_rssi_dbm,
+            protocol_hint: r.protocol_hint || "",
             seen: 1, first: now, last: now, best: r.peak_rssi_dbm,
           });
         } else {
@@ -682,6 +707,7 @@ body.pro button.modebtn{border-color:var(--accent);color:var(--accent)}
           item.label = r.label;
           item.explanation = r.explanation;
           item.peak_rssi_dbm = r.peak_rssi_dbm;
+          item.protocol_hint = r.protocol_hint || item.protocol_hint || "";
           if (r.peak_rssi_dbm > item.best) item.best = r.peak_rssi_dbm;
         }
       }
@@ -1067,6 +1093,7 @@ body.pro button.modebtn{border-color:var(--accent);color:var(--accent)}
     saveRegionLog();
     paintRegions();
   };
+  $("ignoreWifi").onchange = () => setIgnoreWifi($("ignoreWifi").checked);
   $("regionLogClear").onclick = () => {
     regionLog = [];
     saveRegionLog();
@@ -1182,6 +1209,7 @@ body.pro button.modebtn{border-color:var(--accent);color:var(--accent)}
   window.onresize = () => { drawSpec(); drawWf(); drawTrend(); drawBursts(); };
   applyUiMode(uiMode());
   paintRegions();
+  if (ignoreWifi) post("/api/settings/runtime", { ignore_wifi_like: true }).catch(() => {});
   settings(); sessions(); connect();
   drawSpec(); drawWf(); drawTrend(); drawBursts();
 })();

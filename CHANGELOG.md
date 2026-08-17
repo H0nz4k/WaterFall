@@ -1,7 +1,12 @@
 # WaterFall CHANGELOG
 
 Formát: `X.Y.Z — YYYY-MM-DD`. Aktuální verze je v [`VERSION`](VERSION).
-Git tag odpovídá verzi (`v0.4.10`).
+Git tag odpovídá verzi (`v0.4.11`).
+
+## 0.4.11 — 2026-08-17
+
+- checkbox **Ignorovat Wi-Fi**: schová energetický odhad „vypadá jako Wi-Fi kanál“ ze seznamu rušiců a přestane ho zapisovat do špiček / capture;
+- SSID z RSSI neznáme — skutečné sítě jen s Wi-Fi monitorem v Pro.
 
 ## 0.4.10 — 2026-08-17
 

@@ -37,7 +37,7 @@ from .rf_analysis import detect_regions
 from .wifi_watch import WifiMonitorWatcher
 
 
-VERSION = "0.4.10"
+VERSION = "0.4.11"
 log = logging.getLogger("waterfall")
 BASE_DIR = Path(__file__).resolve().parent.parent
 STATIC_DIR = BASE_DIR / "app" / "static"
@@ -196,6 +196,7 @@ runtime_settings = {
     "rf_region_threshold_db": float(CONFIG.get("analysis", {}).get("rf_region_threshold_db", 12.0)),
     "capture_sweeps": bool(CONFIG.get("analysis", {}).get("capture_sweeps", True)),
     "capture_regions": bool(CONFIG.get("analysis", {}).get("capture_regions", True)),
+    "ignore_wifi_like": bool(CONFIG.get("analysis", {}).get("ignore_wifi_like", False)),
 }
 
 relay_cfg = CONFIG.get("relay", {})
@@ -330,6 +331,8 @@ def register_sweep(sweep: dict[str, Any]):
 
     if runtime_settings["capture_regions"]:
         for region in sweep["regions"]:
+            if runtime_settings.get("ignore_wifi_like") and region.get("protocol_hint") == "WIFI_LIKE":
+                continue
             capture_event(
                 source="RF_ANALYZER", protocol=region["protocol_hint"],
                 event_type="RF_REGION", host_time=sweep["host_time"],
@@ -339,6 +342,8 @@ def register_sweep(sweep: dict[str, Any]):
             )
 
     for region in sweep["regions"]:
+        if runtime_settings.get("ignore_wifi_like") and region.get("protocol_hint") == "WIFI_LIKE":
+            continue
         note_peak(
             freq_mhz=int(region["peak_freq_mhz"]),
             rssi_dbm=region.get("peak_rssi_dbm"),
@@ -919,7 +924,7 @@ async def set_runtime_settings(payload: dict[str, Any] = Body(default={})):
         if not 3 <= v <= 60:
             return JSONResponse({"ok": False, "error": "rf_region_threshold_db musí být 3..60"}, status_code=400)
         runtime_settings["rf_region_threshold_db"] = v
-    for k in ("capture_sweeps", "capture_regions"):
+    for k in ("capture_sweeps", "capture_regions", "ignore_wifi_like"):
         if k in payload:
             runtime_settings[k] = bool(payload[k])
     return {"ok": True, "runtime": runtime_settings}
