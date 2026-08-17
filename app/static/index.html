@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>WaterFall 0.4.9</title>
+<title>WaterFall 0.4.10</title>
 <style>
 :root{color-scheme:dark;--bg:#071019;--panel:#0c1722;--panel2:#101d29;--border:#263746;--text:#e8f0f7;--muted:#8ca1b4;--accent:#46c7ff;--good:#5ce08a;--warn:#ffd166;--bad:#ff6b6b;--purple:#c792ea}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,Segoe UI,Arial,sans-serif;font-size:13px}
@@ -60,7 +60,7 @@ body.pro button.modebtn{border-color:var(--accent);color:var(--accent)}
 <header>
   <div class="top">
     <div>
-      <h1>WaterFall <span>v0.4.9</span></h1>
+      <h1>WaterFall <span>v0.4.10</span></h1>
       <div class="sub">Co se děje v pásmu 2,4 GHz · špičky · capture</div>
     </div>
     <div class="status">
@@ -73,6 +73,7 @@ body.pro button.modebtn{border-color:var(--accent);color:var(--accent)}
       <span id="wifiBadge" class="badge pro-only">Wi-Fi</span>
       <span id="nfcBadge" class="badge">NFC</span>
       <span id="peakBadge" class="badge">Špičky 0</span>
+      <span id="powerBadge" class="badge">Štítek —</span>
       <button id="uiModeBtn" class="badge modebtn">Režim: Easy</button>
     </div>
   </div>
@@ -96,6 +97,11 @@ body.pro button.modebtn{border-color:var(--accent);color:var(--accent)}
       <label class="pro-only">Práh dBm<input id="watchT" class="small" type="number" value="-75"></label>
       <button id="watchStart" class="good">WATCH</button>
       <button data-cmd="watch_stop" class="danger">Stop</button>
+    </div>
+    <div class="group">
+      <div class="name">Štítek (relé)</div>
+      <button id="powerOn" class="good">POWER ON</button>
+      <button id="powerOff" class="danger">POWER OFF</button>
     </div>
     <div class="group pro-only" style="flex:1">
       <div class="name">Filtr</div>
@@ -366,8 +372,8 @@ body.pro button.modebtn{border-color:var(--accent);color:var(--accent)}
           <button id="expStart">Experiment start</button>
           <button id="expStop">Experiment stop</button>
           <button id="expDownload">Stáhnout JSONL</button>
-          <button id="powerOn">POWER ON</button>
-          <button id="powerOff" class="danger">POWER OFF</button>
+          <button id="powerOnLab">POWER ON</button>
+          <button id="powerOffLab" class="danger">POWER OFF</button>
           <button data-marker="NFC_EVENT">Marker NFC</button>
           <button data-marker="RF_EVENT">Marker RF</button>
         </div>
@@ -406,6 +412,23 @@ body.pro button.modebtn{border-color:var(--accent);color:var(--accent)}
     </ol>
   </div>
   <div class="panel">
+    <h3>Zkouška štítku — vysílá něco v 2,4 GHz?</h3>
+    <p>Štítek visí na <b>relé</b>. Tím ho vypneš a zapneš a můžeš čekat špičku po náběhu. Sonda vidí jen energii 2400–2500 MHz, ne paket VUSION. Když rádio štítku jede na 868 MHz, tady nic neuvidíš — i to je výsledek.</p>
+    <p>To, co skáče samo (2431, 2455, 2470…), je skoro jistě pokoj. Platí jen to, co se <b>objeví s POWER ON</b> a <b>zmizí s POWER OFF</b>.</p>
+    <ol>
+      <li>Štítek a dongle 20–40 cm od sebe. <b>Logovat nové</b> zapnuté. Session pojmenuj <code>stitok-rele</code> a dej <b>START</b> capture.</li>
+      <li><b>POWER OFF</b>. Počkej 10–15 s. Zapamatuj si waterfall a log rušiců — to je klid bez štítku. Volitelně <b>Zapamatovat klid</b>.</li>
+      <li>Nech <b>SCAN</b>. Klikni <b>POWER ON</b>. Odznak přepne na Štítek ON, do capture jde marker <code>POWER_ON</code>.</li>
+      <li>Hledej 2–8 s po zapnutí: nová úzká čára (1–3 MHz) ve waterfallu, nová položka v logu rušiců, nebo skok proti zapamatovanému klidu. To je kandidát.</li>
+      <li>Kandidáta klikni → <b>Zapsat</b> → ve Špičkách pojmenuj. Pak <b>WATCH</b> na té MHz.</li>
+      <li>S WATCH: <b>POWER OFF</b> → 10 s ticho → <b>POWER ON</b>. Burst má sedět na zapnutí (do 1–2 s). Zopakuj 5×. V Capture uvidíš střídání <code>POWER_ON</code> / <code>POWER_OFF</code> a bursty.</li>
+      <li>Kontrola: POWER ON/OFF, ale štítek odpojený od relé (nebo odnesený). Stejný burst se nesmí opakovat.</li>
+    </ol>
+    <p><b>Ano, štítek asi vysílá v 2,4 GHz</b> — stejná MHz v 5 z 5 zapnutí, bez štítku nic, není to široký Wi-Fi flek (~20 MHz).</p>
+    <p><b>Neplatí</b> — skáče to i při POWER OFF, jednou jo podruhé ne, nebo to sedí na Wi-Fi v místnosti. Pak z této sondy 2,4 GHz nepotvrdíš; další krok je sub-GHz (SDR / 868), ne další hodiny na donglu.</p>
+    <p>Volitelně po potvrzené MHz zkus i přiložení NFC při zapnutém štítku — druhý stimulus, stejné pravidlo (opakuje se / bez štítku ne).</p>
+  </div>
+  <div class="panel">
     <h3>Kdy použít SCAN a kdy WATCH</h3>
     <p><b>SCAN</b> je přehled celého pásma (~2× za sekundu). Hodí se na „kde to pípá?“.</p>
     <p><b>WATCH</b> opustí přehled a sedí na jedné MHz. Hodí se na časování: přiložení NFC, zapnutí relé, krátký burst. V Easy zadáš jen MHz a WATCH.</p>
@@ -413,7 +436,7 @@ body.pro button.modebtn{border-color:var(--accent);color:var(--accent)}
   </div>
   <div class="panel">
     <h3>Easy a Pro</h3>
-    <p>Výchozí je <b>Easy</b>: SCAN, capture, WATCH, Spektrum / Špičky / Capture. <b>Pro</b> (tlačítko nahoře) přidá krok sweepu, BLE/Wi-Fi observer, CSV, relé, PCAP a katalog zařízení. Volba zůstane v prohlížeči.</p>
+    <p>Výchozí je <b>Easy</b>: SCAN, capture, WATCH, relé štítku, Spektrum / Špičky / Capture. <b>Pro</b> (tlačítko nahoře) přidá krok sweepu, BLE/Wi-Fi observer, CSV, PCAP a katalog zařízení. Volba zůstane v prohlížeči.</p>
   </div>
   <div class="panel">
     <h3>Tlačítka nahoře</h3>
@@ -422,6 +445,7 @@ body.pro button.modebtn{border-color:var(--accent);color:var(--accent)}
       <tr><td><b>Capture START / STOP</b></td><td>Bez START se spektrum jen kreslí. Se START se události zapisují do SQLite.</td></tr>
       <tr><td><b>SCAN</b></td><td>Dokola RSSI 2400–2500 MHz.</td></tr>
       <tr><td><b>WATCH</b></td><td>Jedna frekvence, bursty v čase.</td></tr>
+      <tr><td><b>POWER ON / OFF</b></td><td>Relé na napájení štítku. V Capture se zapíše marker POWER_ON / POWER_OFF.</td></tr>
     </table>
   </div>
   <div class="panel">
@@ -732,6 +756,14 @@ body.pro button.modebtn{border-color:var(--accent);color:var(--accent)}
     if (s.peak_count != null) {
       $("peakBadge").textContent = "Špičky " + s.peak_count;
       $("peakBadge").className = "badge " + (s.peak_count ? "ok" : "");
+    }
+    if (s.relay_available) {
+      $("powerBadge").textContent = s.relay_power_on ? "Štítek ON" : "Štítek OFF";
+      $("powerBadge").className = "badge " + (s.relay_power_on ? "ok" : "warn");
+    } else {
+      $("powerBadge").textContent = "Relé —";
+      $("powerBadge").className = "badge";
+      $("powerBadge").title = "Relé není v configu zapnuté, nebo GPIO selhalo";
     }
     if (s.probe_error) log(s.probe_error);
     if (s.ble_error) log("BLE " + s.ble_error);
@@ -1138,8 +1170,13 @@ body.pro button.modebtn{border-color:var(--accent);color:var(--accent)}
   $("expStart").onclick = () => post("/api/experiment/start").catch(e => log(e.message));
   $("expStop").onclick = () => post("/api/experiment/stop").catch(e => log(e.message));
   $("expDownload").onclick = () => window.open("/api/experiment/download", "_blank");
-  $("powerOn").onclick = () => post("/api/relay/on").catch(e => log(e.message));
-  $("powerOff").onclick = () => post("/api/relay/off").catch(e => log(e.message));
+  const setPower = on => post("/api/relay/" + (on ? "on" : "off"))
+    .then(() => log(on ? "POWER ON" : "POWER OFF"))
+    .catch(e => log(e.message));
+  $("powerOn").onclick = () => setPower(true);
+  $("powerOff").onclick = () => setPower(false);
+  $("powerOnLab").onclick = () => setPower(true);
+  $("powerOffLab").onclick = () => setPower(false);
 
   setInterval(() => { $("mAge").textContent = lastData ? ((Date.now() - lastData) / 1000).toFixed(1) + " s" : "—"; }, 250);
   window.onresize = () => { drawSpec(); drawWf(); drawTrend(); drawBursts(); };

@@ -1,7 +1,12 @@
 # WaterFall CHANGELOG
 
 Formát: `X.Y.Z — YYYY-MM-DD`. Aktuální verze je v [`VERSION`](VERSION).
-Git tag odpovídá verzi (`v0.4.9`).
+Git tag odpovídá verzi (`v0.4.10`).
+
+## 0.4.10 — 2026-08-17
+
+- POWER ON/OFF relé je nahoře i v Easy; odznak Štítek ON/OFF;
+- Nápověda má checklist **Zkouška štítku** (vypnout/zapnout relé a čekat špičku).
 
 ## 0.4.9 — 2026-08-17
 
