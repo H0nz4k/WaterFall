@@ -1,7 +1,13 @@
 # WaterFall CHANGELOG
 
 Formát: `X.Y.Z — YYYY-MM-DD`. Aktuální verze je v [`VERSION`](VERSION).
-Git tag odpovídá verzi (`v0.4.13`).
+Git tag odpovídá verzi (`v0.4.14`).
+
+## 0.4.14 — 2026-08-18
+
+- větší čitelný text (16 px základ), větší tlačítka a odznaky;
+- obsah má strop 1480 px, metriky se skládají (`auto-fit`), na úzkém monitoru 2 sloupce;
+- grafy se škálují s výškou okna.
 
 ## 0.4.13 — 2026-08-18
 

@@ -17,7 +17,7 @@ if [[ "${1:-}" == "--update" ]]; then
   MODE="update"
 fi
 
-VERSION="0.4.12"
+VERSION="0.4.14"
 if [[ -f "$SOURCE_DIR/VERSION" ]]; then
   VERSION="$(tr -d '[:space:]' < "$SOURCE_DIR/VERSION")"
 fi
