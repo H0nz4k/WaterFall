@@ -1,0 +1,11 @@
+# WaterFall lab — serial gadgets ModemManager must not claim,
+# and GPIO character devices for the tag relay (user hw, group gpio).
+
+# OpenVusion RF Probe nRF52840 (Zephyr CDC)
+ACTION=="add", SUBSYSTEM=="tty", ATTRS{idVendor}=="2fe3", ATTRS{idProduct}=="0001", ENV{ID_MM_DEVICE_IGNORE}="1", ENV{ID_MM_PORT_IGNORE}="1", GROUP="dialout", MODE="0660"
+
+# Elatec TWN4 MultiTech / OEM TWN4 USB CDC
+ACTION=="add", SUBSYSTEM=="tty", ATTRS{idVendor}=="09d8", ENV{ID_MM_DEVICE_IGNORE}="1", ENV{ID_MM_PORT_IGNORE}="1", GROUP="dialout", MODE="0660"
+
+KERNEL=="gpiochip*", GROUP="gpio", MODE="0660"
+SUBSYSTEM=="gpio", GROUP="gpio", MODE="0660"

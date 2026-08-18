@@ -2,7 +2,7 @@
 
 Webový RF capture / analyzer pro výzkum **OpenVusion** (SES-imagotag VUSION a okolní 2,4 GHz pásmo).
 
-**Verze:** `0.4.11` · soubor [`VERSION`](VERSION) · historie v [`CHANGELOG.md`](CHANGELOG.md)  
+**Verze:** `0.4.12` · soubor [`VERSION`](VERSION) · historie v [`CHANGELOG.md`](CHANGELOG.md)  
 **Sonda:** [OpenVusion RF Probe](https://github.com/H0nz4k/OpenVusion_RF_Probe) 0.7.2 na nRF52840 Dongle  
 **Host:** Raspberry Pi / Linux · web na portu `8088`
 
@@ -55,14 +55,17 @@ Trvalý cíl: `export WATERFALL_PI=pi@192.168.1.50`
 
 ## Instalace na Raspberry Pi
 
+Čistý OS, uživatel **hw**, relé BCM 17: [`INSTALL_RPI.md`](INSTALL_RPI.md).
+
 ```bash
 git clone https://github.com/H0nz4k/WaterFall.git
 cd WaterFall
 chmod +x install.sh
 sudo ./install.sh
+sudo reboot
 ```
 
-Instalátor dá aplikaci do `/opt/waterfall`, data do `/var/lib/waterfall` a založí `waterfall.service`.
+Instalátor dá aplikaci do `/opt/waterfall`, data do `/var/lib/waterfall` a založí `waterfall.service` pod `hw`. `config.json` při update nepřepisuje.
 
 ```bash
 sudo systemctl status waterfall --no-pager
@@ -70,7 +73,7 @@ journalctl -u waterfall -f
 ```
 
 Web: `http://<IP_RPI>:8088/`  
-Config: `/opt/waterfall/config.json` (vznikne z `config.example.json`, existující se nepřepisuje)
+Config: `/opt/waterfall/config.json`
 
 ### Lokální / mock
 
@@ -87,7 +90,7 @@ python run_server.py
 
 - aktuální číslo je v [`VERSION`](VERSION) a v `app/main.py` (`VERSION`)
 - každá viditelná změna patří do [`CHANGELOG.md`](CHANGELOG.md) nahoře, ve formátu `X.Y.Z — YYYY-MM-DD`
-- tag v gitu: `v0.4.11`
+- tag v gitu: `v0.4.12`
 
 | Část | Význam |
 |---|---|
@@ -95,7 +98,7 @@ python run_server.py
 | minor | nová funkce (Špičky, Capture, PCAP…) |
 | patch | UI, opravy, dokumentace |
 
-Firmware sondy se verzuje zvlášť. WaterFall 0.4.11 očekává Probe **0.7.2** (`WATERFALL_COMPAT=0.4.1`).
+Firmware sondy se verzuje zvlášť. WaterFall 0.4.12 očekává Probe **0.7.2** (`WATERFALL_COMPAT=0.4.1`).
 
 ## Config — důležité
 

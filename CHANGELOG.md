@@ -1,7 +1,12 @@
 # WaterFall CHANGELOG
 
 Formát: `X.Y.Z — YYYY-MM-DD`. Aktuální verze je v [`VERSION`](VERSION).
-Git tag odpovídá verzi (`v0.4.11`).
+Git tag odpovídá verzi (`v0.4.12`).
+
+## 0.4.12 — 2026-08-18
+
+- `install.sh` je čistá instalace na Raspberry Pi pod uživatelem **hw**: GPIO relé BCM 17, udev, ModemManager pryč, skupiny, systemd;
+- [`INSTALL_RPI.md`](INSTALL_RPI.md) — zapojení relé a postup od prázdné SD karty.
 
 ## 0.4.11 — 2026-08-17
 

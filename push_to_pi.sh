@@ -71,6 +71,7 @@ else
     "$HERE/watch_probe_state.sh" \
     "$HERE/TROUBLESHOOTING.md" \
     "$HERE/GUIDE.md" \
+    "$HERE/INSTALL_RPI.md" \
     "$HERE/udev" \
     "$TARGET:$REMOTE_DIR/"
 fi
