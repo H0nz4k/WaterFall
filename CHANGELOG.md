@@ -1,7 +1,11 @@
 # WaterFall CHANGELOG
 
 Formát: `X.Y.Z — YYYY-MM-DD`. Aktuální verze je v [`VERSION`](VERSION).
-Git tag odpovídá verzi (`v0.4.12`).
+Git tag odpovídá verzi (`v0.4.13`).
+
+## 0.4.13 — 2026-08-18
+
+- aktivní START/STOP, SCAN, WATCH a POWER ON/OFF je vyplněné (ne jen rámeček).
 
 ## 0.4.12 — 2026-08-18
 

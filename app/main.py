@@ -37,7 +37,7 @@ from .rf_analysis import detect_regions
 from .wifi_watch import WifiMonitorWatcher
 
 
-VERSION = "0.4.12"
+VERSION = "0.4.13"
 log = logging.getLogger("waterfall")
 BASE_DIR = Path(__file__).resolve().parent.parent
 STATIC_DIR = BASE_DIR / "app" / "static"

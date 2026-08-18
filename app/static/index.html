@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>WaterFall 0.4.12</title>
+<title>WaterFall 0.4.13</title>
 <style>
 :root{color-scheme:dark;--bg:#071019;--panel:#0c1722;--panel2:#101d29;--border:#263746;--text:#e8f0f7;--muted:#8ca1b4;--accent:#46c7ff;--good:#5ce08a;--warn:#ffd166;--bad:#ff6b6b;--purple:#c792ea}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,Segoe UI,Arial,sans-serif;font-size:13px}
@@ -17,6 +17,9 @@ h1{font-size:18px;margin:0}h1 span{color:var(--muted);font-size:11px;font-weight
 label{display:grid;gap:2px;color:var(--muted);font-size:10px}
 button,input,select,textarea{background:#09141e;color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font:inherit}button{cursor:pointer}button:hover{border-color:var(--accent)}
 button.primary{border-color:#238bb8}button.danger{border-color:#8b3c48}button.good{border-color:#2f8653}button.activechip{border-color:var(--accent);color:var(--accent)}
+button.on.good{background:#163526;border-color:var(--good);color:var(--good);font-weight:600}
+button.on.danger{background:#3a171c;border-color:var(--bad);color:#ff8a8a;font-weight:600}
+button.on.primary,button.on:not(.good):not(.danger){background:#123445;border-color:var(--accent);color:var(--accent);font-weight:600}
 input.small{width:72px}input.medium,select.medium{width:128px}input.wide{width:220px}input.filter{width:min(420px,100%)}
 nav{display:flex;gap:4px;padding:8px 12px 0;max-width:1900px;margin:auto}
 .tabbtn{background:transparent;color:var(--muted);border:1px solid transparent;border-radius:7px 7px 0 0;padding:8px 12px;cursor:pointer}
@@ -62,7 +65,7 @@ label.chk input{accent-color:var(--accent)}
 <header>
   <div class="top">
     <div>
-      <h1>WaterFall <span>v0.4.12</span></h1>
+      <h1>WaterFall <span>v0.4.13</span></h1>
       <div class="sub">Co se děje v pásmu 2,4 GHz · špičky · capture</div>
     </div>
     <div class="status">
@@ -89,8 +92,8 @@ label.chk input{accent-color:var(--accent)}
     </div>
     <div class="group">
       <div class="name">Pásmo</div>
-      <button data-cmd="scan_start" class="primary">SCAN</button>
-      <button data-cmd="scan_stop">Stop scan</button>
+      <button id="scanStart" data-cmd="scan_start" class="primary">SCAN</button>
+      <button id="scanStop" data-cmd="scan_stop">Stop scan</button>
       <button data-cmd="once" class="pro-only">Jeden sweep</button>
     </div>
     <div class="group">
@@ -98,7 +101,7 @@ label.chk input{accent-color:var(--accent)}
       <label>MHz<input id="watchF" class="small" type="number" value="2453"></label>
       <label class="pro-only">Práh dBm<input id="watchT" class="small" type="number" value="-75"></label>
       <button id="watchStart" class="good">WATCH</button>
-      <button data-cmd="watch_stop" class="danger">Stop</button>
+      <button id="watchStop" data-cmd="watch_stop" class="danger">Stop</button>
     </div>
     <div class="group">
       <div class="name">Štítek (relé)</div>
@@ -791,9 +794,37 @@ label.chk input{accent-color:var(--accent)}
       $("powerBadge").className = "badge";
       $("powerBadge").title = "Relé není v configu zapnuté, nebo GPIO selhalo";
     }
+    paintButtons(s);
     if (s.probe_error) log(s.probe_error);
     if (s.ble_error) log("BLE " + s.ble_error);
     if (s.wifi_error) log("Wi-Fi " + s.wifi_error);
+  }
+  function markOn(id, on) {
+    const el = $(id);
+    if (el) el.classList.toggle("on", !!on);
+  }
+  function paintButtons(s) {
+    s = s || state || {};
+    markOn("capStart", s.capture_active);
+    markOn("capStop", s.capture_active === false);
+    markOn("scanStart", s.scan_enabled);
+    markOn("scanStop", s.scan_enabled === false && !s.watch_enabled);
+    markOn("watchStart", s.watch_enabled);
+    markOn("watchStop", s.watch_enabled === false);
+    if (s.relay_available) {
+      markOn("powerOn", s.relay_power_on);
+      markOn("powerOff", s.relay_power_on === false);
+      markOn("powerOnLab", s.relay_power_on);
+      markOn("powerOffLab", s.relay_power_on === false);
+    }
+    markOn("csvStart", s.recording);
+    markOn("csvStop", s.recording === false);
+    markOn("expStart", s.experiment_recording);
+    markOn("expStop", s.experiment_recording === false);
+    markOn("bleStart", s.ble_connected);
+    markOn("bleStop", s.ble_connected === false);
+    markOn("wifiStart", s.wifi_connected);
+    markOn("wifiStop", s.wifi_connected === false);
   }
   async function post(url, body) {
     const o = { method: "POST" };
@@ -1099,7 +1130,13 @@ label.chk input{accent-color:var(--accent)}
     saveRegionLog();
     paintRegions();
   };
-  document.querySelectorAll("[data-cmd]").forEach(b => b.onclick = () => post("/api/command/" + b.dataset.cmd).catch(e => log(e.message)));
+  document.querySelectorAll("[data-cmd]").forEach(b => b.onclick = () => {
+    const cmd = b.dataset.cmd;
+    if (cmd === "scan_start") { markOn("scanStart", true); markOn("scanStop", false); markOn("watchStart", false); markOn("watchStop", true); }
+    if (cmd === "scan_stop") { markOn("scanStart", false); markOn("scanStop", true); }
+    if (cmd === "watch_stop") { markOn("watchStart", false); markOn("watchStop", true); markOn("scanStop", true); }
+    post("/api/command/" + cmd).catch(e => log(e.message));
+  });
   document.querySelectorAll("[data-marker]").forEach(b => b.onclick = () => post("/api/marker/" + encodeURIComponent(b.dataset.marker)).catch(e => log(e.message)));
   document.querySelectorAll(".chip").forEach(b => b.onclick = () => {
     chip = b.dataset.chip;
@@ -1111,17 +1148,26 @@ label.chk input{accent-color:var(--accent)}
   $("dwellSet").onclick = () => post(`/api/dwell/${$("dwell").value}`).catch(e => log(e.message));
   $("stepSet").onclick = () => post(`/api/step/${$("step").value}`).catch(e => log(e.message));
   $("rssiModeSet").onclick = () => post(`/api/rssimode/${$("rssiMode").value}`).catch(e => log(e.message));
-  $("watchStart").onclick = () => post(`/api/watch/start/${$("watchF").value}/${$("watchT").value}/${$("watchS").value}`).catch(e => log(e.message));
+  $("watchStart").onclick = () => {
+    markOn("watchStart", true); markOn("watchStop", false); markOn("scanStart", false); markOn("scanStop", true);
+    post(`/api/watch/start/${$("watchF").value}/${$("watchT").value}/${$("watchS").value}`).catch(e => log(e.message));
+  };
   $("settingsSave").onclick = () => post("/api/settings/runtime", {
     rf_region_threshold_db: Number($("aThreshold").value),
     capture_sweeps: $("aSweeps").value === "true",
     capture_regions: $("aRegions").value === "true",
   }).then(() => log("nastavení uloženo")).catch(e => log(e.message));
 
-  $("capStart").onclick = () => post("/api/capture/start", { label: $("capLabel").value, notes: "" })
+  $("capStart").onclick = () => {
+    markOn("capStart", true); markOn("capStop", false);
+    post("/api/capture/start", { label: $("capLabel").value, notes: "" })
     .then(j => { log("capture #" + j.session.id); sessions(); onState({ ...state, capture_active: true, capture_session_id: j.session.id }); })
     .catch(e => log(e.message));
-  $("capStop").onclick = () => post("/api/capture/stop").then(() => { log("capture stop"); sessions(); loadEvents(); }).catch(e => log(e.message));
+  };
+  $("capStop").onclick = () => {
+    markOn("capStart", false); markOn("capStop", true);
+    post("/api/capture/stop").then(() => { log("capture stop"); sessions(); loadEvents(); }).catch(e => log(e.message));
+  };
   $("capRefresh").onclick = () => sessions().then(loadEvents);
   $("filterApply").onclick = () => { gotoTab("captureTab"); loadEvents(); };
   $("fQ").addEventListener("keydown", e => { if (e.key === "Enter") { gotoTab("captureTab"); loadEvents(); } });
@@ -1197,9 +1243,15 @@ label.chk input{accent-color:var(--accent)}
   $("expStart").onclick = () => post("/api/experiment/start").catch(e => log(e.message));
   $("expStop").onclick = () => post("/api/experiment/stop").catch(e => log(e.message));
   $("expDownload").onclick = () => window.open("/api/experiment/download", "_blank");
-  const setPower = on => post("/api/relay/" + (on ? "on" : "off"))
-    .then(() => log(on ? "POWER ON" : "POWER OFF"))
-    .catch(e => log(e.message));
+  const setPower = on => {
+    markOn("powerOn", on); markOn("powerOff", !on);
+    markOn("powerOnLab", on); markOn("powerOffLab", !on);
+    $("powerBadge").textContent = on ? "Štítek ON" : "Štítek OFF";
+    $("powerBadge").className = "badge " + (on ? "ok" : "warn");
+    return post("/api/relay/" + (on ? "on" : "off"))
+      .then(() => log(on ? "POWER ON" : "POWER OFF"))
+      .catch(e => log(e.message));
+  };
   $("powerOn").onclick = () => setPower(true);
   $("powerOff").onclick = () => setPower(false);
   $("powerOnLab").onclick = () => setPower(true);
