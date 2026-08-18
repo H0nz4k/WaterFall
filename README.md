@@ -2,8 +2,8 @@
 
 Webový RF capture / analyzer pro výzkum **OpenVusion** (SES-imagotag VUSION a okolní 2,4 GHz pásmo).
 
-**Verze:** `0.4.15` · soubor [`VERSION`](VERSION) · historie v [`CHANGELOG.md`](CHANGELOG.md)  
-**Sonda:** [OpenVusion RF Probe](https://github.com/H0nz4k/OpenVusion_RF_Probe) 0.7.2 na nRF52840 Dongle  
+**Verze:** `0.4.18` · soubor [`VERSION`](VERSION) · historie v [`CHANGELOG.md`](CHANGELOG.md)  
+**Sonda:** [OpenVusion RF Probe](https://github.com/H0nz4k/OpenVusion_RF_Probe) 0.7.3 na nRF52840 Dongle  
 **Host:** Raspberry Pi / Linux · web na portu `8088`
 
 WaterFall ukáže, **co se děje v pásmu 2400–2500 MHz**, uloží to a u každé události řekne, jestli známe zařízení, nebo jen energii. Výchozí ovládání je **Easy** (SCAN, capture, WATCH). **Pro** v Nastavení nebo tlačítkem nahoře přidá laboratorní ovládání.
@@ -17,10 +17,10 @@ WaterFall ukáže, **co se děje v pásmu 2400–2500 MHz**, uloží to a u kaž
 - Capture Center (SQLite) + JSONL / SQLite snapshot
 - katalog zařízení z BLE / Wi-Fi / NFC
 - PCAP / PCAPNG inspector přes `tshark`
-- ovládání sondy: SCAN, ONCE, RANGE, DWELL, STEP, RSSIMODE, WATCH
-- volitelně BLE observer, 802.11 monitor, TWN4, GPIO relé
+- ovládání sondy: SCAN, ONCE, RANGE, DWELL, STEP, RSSIMODE, WATCH, BLE SCAN
+- volitelně BLE observer na donglu (jen RX) i na Pi, 802.11 monitor, TWN4, GPIO relé
 
-Sonda **jen měří energii**. Neumí packet RX proprietárního VUSION protokolu a **nevysílá**.
+Sonda **jen přijímá**. Energy SCAN měří RSSI. BLE na donglu čte advertising PDU. Neumí packet RX proprietárního VUSION protokolu a **nevysílá**.
 
 Když nahoře **PROBE bliká** ONLINE/OFFLINE a spektrum přitom žije, jde o USB reconnect: [`TROUBLESHOOTING.md`](TROUBLESHOOTING.md).  
 Build a flash donglu: [BUILD_FLASH.md](https://github.com/H0nz4k/OpenVusion_RF_Probe/blob/main/BUILD_FLASH.md).
@@ -90,7 +90,7 @@ python run_server.py
 
 - aktuální číslo je v [`VERSION`](VERSION) a v `app/main.py` (`VERSION`)
 - každá viditelná změna patří do [`CHANGELOG.md`](CHANGELOG.md) nahoře, ve formátu `X.Y.Z — YYYY-MM-DD`
-- tag v gitu: `v0.4.15`
+- tag v gitu: `v0.4.18`
 
 | Část | Význam |
 |---|---|
@@ -98,7 +98,7 @@ python run_server.py
 | minor | nová funkce (Špičky, Capture, PCAP…) |
 | patch | UI, opravy, dokumentace |
 
-Firmware sondy se verzuje zvlášť. WaterFall 0.4.15 očekává Probe **0.7.2** (`WATERFALL_COMPAT=0.4.1`).
+Firmware sondy se verzuje zvlášť. WaterFall 0.4.18 očekává Probe **0.7.3** (`WATERFALL_COMPAT=0.4.2`). Starší 0.7.2 dál umí SCAN/WATCH, ale bez BLE RX na donglu.
 
 ## Config — důležité
 

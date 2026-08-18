@@ -1,7 +1,23 @@
 # WaterFall CHANGELOG
 
 Formát: `X.Y.Z — YYYY-MM-DD`. Aktuální verze je v [`VERSION`](VERSION).
-Git tag odpovídá verzi (`v0.4.15`).
+Git tag odpovídá verzi (`v0.4.18`).
+
+## 0.4.18 — 2026-08-19
+
+- Probe 0.7.3: rychlejší SCAN (dwell 2 ms, RSSIMODE MAX), ostřejší WATCH (včetně `2463,2466`), BLE advertising RX na donglu;
+- nové řádky `BLEADV` a INFO `BLE_RX=OBSERVER`; Easy ukáže fialové čipy se jmény/MAC z donglu;
+- odznak **BLE RX sonda** vs BLE na Pi; Pro má **BLE na donglu** (jen příjem) a interleave;
+- nutný reflash donglu na 0.7.3.
+
+## 0.4.17 — 2026-08-19
+
+- Wi-Fi scan z Pi se obnovuje hned (tlačítko **Sítě**), nejen z cache připojené sítě;
+- 5 GHz hotspot se vypíše jménem s poznámkou, že ho dongle nevidí.
+
+## 0.4.16 — 2026-08-19
+
+- Easy na notebook: ovládání v jednom řádku, spektrum a waterfall se dělí o zbývající výšku okna.
 
 ## 0.4.15 — 2026-08-18
 

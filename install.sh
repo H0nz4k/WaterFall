@@ -17,7 +17,7 @@ if [[ "${1:-}" == "--update" ]]; then
   MODE="update"
 fi
 
-VERSION="0.4.15"
+VERSION="0.4.17"
 if [[ -f "$SOURCE_DIR/VERSION" ]]; then
   VERSION="$(tr -d '[:space:]' < "$SOURCE_DIR/VERSION")"
 fi
@@ -231,8 +231,8 @@ ${factory_line}
 ExecStart=${APP_DIR}/.venv/bin/python ${APP_DIR}/run_server.py
 Restart=on-failure
 RestartSec=2
-AmbientCapabilities=CAP_NET_RAW
-CapabilityBoundingSet=CAP_NET_RAW
+AmbientCapabilities=CAP_NET_RAW CAP_NET_ADMIN
+CapabilityBoundingSet=CAP_NET_RAW CAP_NET_ADMIN
 NoNewPrivileges=true
 
 [Install]

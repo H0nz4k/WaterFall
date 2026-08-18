@@ -22,8 +22,8 @@ Stejný návod je ve webu v záložce **Nápověda**.
 
 | Režim | K čemu |
 |---|---|
-| **SCAN** | Přehled celého pásma (~2× za sekundu). „Kde to pípá?“ |
-| **WATCH** | Jedna MHz, časování burstů (NFC, relé). SCAN stojí. |
+| **SCAN** | Přehled celého pásma (0.7.3: dwell 2 ms + MAX, po sweepu ~30 ms BLE ADV). „Kde to pípá?“ |
+| **WATCH** | Jedna nebo několik MHz (třeba 2463,2466), časování burstů. SCAN stojí. |
 
 Sonda má jedno rádio — nejde obojí naráz.
 

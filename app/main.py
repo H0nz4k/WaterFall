@@ -38,7 +38,7 @@ from .wifi_survey import WifiSurveyWatcher
 from .wifi_watch import WifiMonitorWatcher
 
 
-VERSION = "0.4.15"
+VERSION = "0.4.18"
 log = logging.getLogger("waterfall")
 BASE_DIR = Path(__file__).resolve().parent.parent
 STATIC_DIR = BASE_DIR / "app" / "static"
@@ -71,11 +71,18 @@ class State:
     probe_serial: str = ""
     probe_error: str = ""
     firmware: str = ""
+    waterfall_compat: str = ""
     scan_enabled: bool = False
     watch_enabled: bool = False
     watch_freq_mhz: int | None = None
+    watch_freqs: str = ""
     watch_threshold_dbm: int | None = None
     watch_sample_us: int | None = None
+    rssi_mode: str = ""
+    dwell_ms: int | None = None
+    probe_ble_rx: bool = False
+    probe_ble_scan: bool = False
+    probe_ble_interleave_ms: int | None = None
     nfc_connected: bool = False
     nfc_error: str = ""
     nfc_present: bool = False
@@ -383,6 +390,31 @@ def register_burst(burst: dict[str, Any]):
     hub.send({"type": "burst", **burst})
 
 
+def register_probe_ble(adv: dict[str, Any]):
+    state.last_rx_iso = adv["host_time"]
+    mac = str(adv.get("mac") or "")
+    name = str(adv.get("name") or "")
+    if name in {"", "-"}:
+        name = ""
+    device_id = f"BLE:{mac}" if mac else "BLE:UNKNOWN"
+    capture_event(
+        source="NRF52840", protocol="BLE", event_type="BLE_ADV",
+        host_time=adv["host_time"], freq_mhz=adv.get("freq_mhz"),
+        rssi_dbm=adv.get("rssi_dbm"),
+        device_id=device_id,
+        summary=f"Probe BLE ADV {mac or '?'} {name}".strip(),
+        raw_text=adv.get("raw_line"), metadata=adv,
+        channel=str(adv.get("freq_mhz") or ""),
+    )
+    upsert_device(
+        device_id=device_id, source="NRF52840", protocol="BLE",
+        address=mac, name=name, kind="BLE advertisement (probe RX)",
+        rssi_dbm=adv.get("rssi_dbm"), freq_mhz=adv.get("freq_mhz"),
+        metadata={"identity_warning": "BLE adresa může být randomizovaná; není to zaručená trvalá identita."},
+    )
+    hub.send({"type": "probe_ble", **adv})
+
+
 def parse_vid_pid(value: Any, default: int) -> int:
     if value is None:
         return default
@@ -487,6 +519,25 @@ class ProbeWorker(threading.Thread):
         except Exception:
             return None
 
+    @staticmethod
+    def parse_bleadv(line: str) -> dict[str, Any] | None:
+        if not line.startswith("BLEADV,"):
+            return None
+        try:
+            p = line.split(",", 5)
+            if len(p) < 5:
+                return None
+            name = p[5] if len(p) > 5 else ""
+            if name in {"", "-"}:
+                name = ""
+            return {
+                "host_time": datetime.now().isoformat(timespec="milliseconds"),
+                "device_ms": int(p[1]), "freq_mhz": int(p[2]), "rssi_dbm": int(p[3]),
+                "mac": p[4].strip(), "name": name.strip(), "raw_line": line,
+            }
+        except Exception:
+            return None
+
     def _send(self, ser: serial.Serial, cmd: str):
         ser.write((cmd + "\r\n").encode("ascii"))
         ser.flush()
@@ -525,7 +576,7 @@ class ProbeWorker(threading.Thread):
 
     @staticmethod
     def _sweep_fragment(line: str) -> bool:
-        if line.startswith("SWEEP,") or line.startswith("BURST,"):
+        if line.startswith("SWEEP,") or line.startswith("BURST,") or line.startswith("BLEADV,"):
             return False
         if line.startswith(","):
             return True
@@ -626,10 +677,14 @@ class ProbeWorker(threading.Thread):
                     # Opening CDC drops DTR, firmware stops SCAN. Always restore.
                     if state.watch_enabled:
                         time.sleep(0.15)
+                        spec = state.watch_freqs or state.watch_freq_mhz
                         self._send(
                             ser,
-                            f"WATCH START {state.watch_freq_mhz} {state.watch_threshold_dbm} {state.watch_sample_us}",
+                            f"WATCH START {spec} {state.watch_threshold_dbm} {state.watch_sample_us}",
                         )
+                    elif state.probe_ble_scan:
+                        time.sleep(0.15)
+                        self._send(ser, "BLE SCAN START")
                     elif cfg.get("auto_scan", True):
                         time.sleep(0.15)
                         self._send(ser, "SCAN START")
@@ -653,14 +708,40 @@ class ProbeWorker(threading.Thread):
                             if burst:
                                 register_burst(burst)
                                 continue
+                            bleadv = self.parse_bleadv(line)
+                            if bleadv:
+                                register_probe_ble(bleadv)
+                                continue
                             if line.startswith("FW="):
                                 state.firmware = line[3:]
                                 broadcast_state()
+                            elif line.startswith("WATERFALL_COMPAT="):
+                                state.waterfall_compat = line.split("=", 1)[1]
+                            elif line.startswith("BLE_RX="):
+                                state.probe_ble_rx = "OBSERVER" in line.upper()
+                                broadcast_state()
+                            elif line.startswith("BLE_SCAN="):
+                                state.probe_ble_scan = line.strip().endswith("=1")
+                            elif line.startswith("BLE_INTERLEAVE_MS="):
+                                try:
+                                    state.probe_ble_interleave_ms = int(line.split("=", 1)[1])
+                                except ValueError:
+                                    pass
+                            elif line.startswith("RSSI_MODE="):
+                                state.rssi_mode = line.split("=", 1)[1]
+                            elif line.startswith("DWELL_MS="):
+                                try:
+                                    state.dwell_ms = int(line.split("=", 1)[1])
+                                except ValueError:
+                                    pass
+                            elif line.startswith("WATCH_FREQS="):
+                                state.watch_freqs = line.split("=", 1)[1]
                             elif line.startswith("PONG"):
                                 hub.send({"type": "log", "line": line})
                             elif line.startswith("OK SCAN=ON"):
                                 state.scan_enabled = True
                                 state.watch_enabled = False
+                                state.probe_ble_scan = False
                                 broadcast_state(); hub.send({"type": "log", "line": line})
                             elif line.startswith("OK SCAN=OFF"):
                                 state.scan_enabled = False
@@ -668,6 +749,7 @@ class ProbeWorker(threading.Thread):
                             elif line.startswith("OK WATCH=ON"):
                                 state.watch_enabled = True
                                 state.scan_enabled = False
+                                state.probe_ble_scan = False
                                 m = re.search(r"FREQ=(\d+).*THRESH=(-?\d+).*SAMPLE_US=(\d+)", line, re.I)
                                 if m:
                                     state.watch_freq_mhz = int(m.group(1)); state.watch_threshold_dbm = int(m.group(2)); state.watch_sample_us = int(m.group(3))
@@ -675,6 +757,20 @@ class ProbeWorker(threading.Thread):
                             elif line.startswith("OK WATCH=OFF"):
                                 state.watch_enabled = False
                                 broadcast_state(); hub.send({"type": "log", "line": line})
+                            elif line.startswith("OK BLE_SCAN=ON"):
+                                state.probe_ble_scan = True
+                                state.scan_enabled = False
+                                state.watch_enabled = False
+                                broadcast_state(); hub.send({"type": "log", "line": line})
+                            elif line.startswith("OK BLE_SCAN=OFF"):
+                                state.probe_ble_scan = False
+                                broadcast_state(); hub.send({"type": "log", "line": line})
+                            elif line.startswith("OK BLE_INTERLEAVE_MS="):
+                                try:
+                                    state.probe_ble_interleave_ms = int(line.split("=", 1)[1])
+                                except ValueError:
+                                    pass
+                                hub.send({"type": "log", "line": line})
                             else:
                                 hub.send({"type": "log", "line": line})
                         except Exception as exc:
@@ -692,6 +788,7 @@ class ProbeWorker(threading.Thread):
                     state.probe_connected = False
                     state.scan_enabled = False
                     state.watch_enabled = False
+                    state.probe_ble_scan = False
                 broadcast_state()
                 time.sleep(0.4 if self._transient(exc) or self._data_fresh(3.0) else 1.5)
 
@@ -887,7 +984,7 @@ async def startup():
     if scfg.get("enabled", True):
         wifi_survey = WifiSurveyWatcher(
             emit=on_wifi_survey,
-            interval_s=float(scfg.get("interval_s", 25)),
+            interval_s=float(scfg.get("interval_s", 12)),
             interface=str(scfg.get("interface", "auto")),
             mock=bool(CONFIG.get("mock_mode", False)),
         )
@@ -902,7 +999,9 @@ async def shutdown():
     if nfc: nfc.stop_event.set()
     if ble: ble.stop_event.set()
     if wifi: wifi.stop_event.set()
-    if wifi_survey: wifi_survey.stop_event.set()
+    if wifi_survey:
+        wifi_survey.wake.set()
+        wifi_survey.stop_event.set()
     csv_writer.stop()
     events.stop()
     if capture_store.active_session_id is not None:
@@ -959,7 +1058,11 @@ async def set_runtime_settings(payload: dict[str, Any] = Body(default={})):
 
 @app.post("/api/command/{command}")
 async def command(command: str):
-    mapping = {"scan_start": "SCAN START", "scan_stop": "SCAN STOP", "once": "ONCE", "ping": "PING", "info": "INFO", "watch_stop": "WATCH STOP"}
+    mapping = {
+        "scan_start": "SCAN START", "scan_stop": "SCAN STOP", "once": "ONCE",
+        "ping": "PING", "info": "INFO", "watch_stop": "WATCH STOP",
+        "ble_scan_start": "BLE SCAN START", "ble_scan_stop": "BLE SCAN STOP",
+    }
     if command not in mapping:
         return JSONResponse({"ok": False, "error": "unknown command"}, status_code=404)
     probe.command(mapping[command])
@@ -999,16 +1102,64 @@ async def set_rssi_mode(mode: str):
     return {"ok": True, "mode": mode}
 
 
+def _watch_spec_ok(spec: str) -> tuple[bool, str, int | None]:
+    parts = [p.strip() for p in spec.split(",") if p.strip()]
+    if not parts or len(parts) > 4:
+        return False, "", None
+    freqs = []
+    for p in parts:
+        try:
+            mhz = int(p)
+        except ValueError:
+            return False, "", None
+        if not (2400 <= mhz <= 2500):
+            return False, "", None
+        freqs.append(mhz)
+    return True, ",".join(str(f) for f in freqs), freqs[0]
+
+
 @app.post("/api/watch/start/{freq_mhz}/{threshold_dbm}/{sample_us}")
 async def watch_start(freq_mhz: int, threshold_dbm: int, sample_us: int):
     if not (2400 <= freq_mhz <= 2500):
         return JSONResponse({"ok": False, "error": "freq musí být 2400..2500 MHz"}, status_code=400)
     if not (-110 <= threshold_dbm <= -20):
         return JSONResponse({"ok": False, "error": "threshold musí být -110..-20 dBm"}, status_code=400)
-    if not (100 <= sample_us <= 10000):
-        return JSONResponse({"ok": False, "error": "sample_us musí být 100..10000"}, status_code=400)
+    if not (50 <= sample_us <= 10000):
+        return JSONResponse({"ok": False, "error": "sample_us musí být 50..10000"}, status_code=400)
+    state.watch_freqs = str(freq_mhz)
     probe.command(f"WATCH START {freq_mhz} {threshold_dbm} {sample_us}")
     return {"ok": True, "freq_mhz": freq_mhz, "threshold_dbm": threshold_dbm, "sample_us": sample_us}
+
+
+@app.post("/api/watch/start")
+async def watch_start_body(payload: dict[str, Any] = Body(default={})):
+    spec = str(payload.get("freqs") or payload.get("freq_mhz") or "").strip()
+    ok, freqs, first = _watch_spec_ok(spec)
+    if not ok:
+        return JSONResponse({"ok": False, "error": "freqs musí být 1–4 hodnoty 2400..2500"}, status_code=400)
+    try:
+        threshold_dbm = int(payload.get("threshold_dbm", -75))
+        sample_us = int(payload.get("sample_us", 100))
+    except (TypeError, ValueError):
+        return JSONResponse({"ok": False, "error": "threshold_dbm a sample_us musí být čísla"}, status_code=400)
+    if not (-110 <= threshold_dbm <= -20):
+        return JSONResponse({"ok": False, "error": "threshold musí být -110..-20 dBm"}, status_code=400)
+    if not (50 <= sample_us <= 10000):
+        return JSONResponse({"ok": False, "error": "sample_us musí být 50..10000"}, status_code=400)
+    state.watch_freq_mhz = first
+    state.watch_freqs = freqs
+    state.watch_threshold_dbm = threshold_dbm
+    state.watch_sample_us = sample_us
+    probe.command(f"WATCH START {freqs} {threshold_dbm} {sample_us}")
+    return {"ok": True, "freqs": freqs, "threshold_dbm": threshold_dbm, "sample_us": sample_us}
+
+
+@app.post("/api/ble_probe/interleave/{ms}")
+async def ble_probe_interleave(ms: int):
+    if not (0 <= ms <= 100):
+        return JSONResponse({"ok": False, "error": "interleave musí být 0..100 ms"}, status_code=400)
+    probe.command(f"BLE INTERLEAVE {ms}")
+    return {"ok": True, "ms": ms}
 
 
 
@@ -1024,6 +1175,14 @@ async def ble_start():
 async def ble_stop():
     ok, message = stop_ble_watcher()
     return {"ok": ok, "message": message}
+
+
+@app.post("/api/wifi/survey")
+async def wifi_survey_now():
+    if wifi_survey is None:
+        return JSONResponse({"ok": False, "error": "wifi survey neběží"}, status_code=409)
+    wifi_survey.kick()
+    return {"ok": True, "message": "skenuji okolní sítě…"}
 
 
 @app.get("/api/wifi/aps")

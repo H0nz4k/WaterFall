@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>WaterFall 0.4.15</title>
+<title>WaterFall 0.4.18</title>
 <style>
 :root{color-scheme:dark;--bg:#071019;--panel:#0c1722;--panel2:#101d29;--border:#263746;--text:#e8f0f7;--muted:#8ca1b4;--accent:#46c7ff;--good:#5ce08a;--warn:#ffd166;--bad:#ff6b6b;--purple:#c792ea}
 *{box-sizing:border-box}
@@ -66,12 +66,36 @@ tr.clickable{cursor:pointer}tr.clickable:hover{background:#132536}tr.selected{ba
 body.easy .pro-only,body.easy .lab-only{display:none !important}
 body.easy .tabbtn[data-tab="devicesTab"],body.easy .tabbtn[data-tab="pcapTab"],
 body.easy .tabbtn[data-tab="peaksTab"],body.easy .tabbtn[data-tab="captureTab"]{display:none}
-body.easy .metrics{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+body.easy .sub,body.easy #fwBadge,body.easy .panelhead .mini{display:none}
+body.easy header{display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px;padding:6px 10px}
+body.easy .top,body.easy .toolbar,body.easy nav,body.easy main{max-width:none;margin:0}
+body.easy .top{padding:0;gap:8px;align-items:center}
+body.easy h1{font-size:1.05rem;white-space:nowrap}
+body.easy .status{gap:4px}
+body.easy .badge{padding:3px 8px;font-size:.75rem}
+body.easy .toolbar{padding:4px 0 6px;border:0;align-items:center;flex-wrap:nowrap;gap:8px}
+body.easy .group{align-items:center;padding-right:10px;flex-wrap:nowrap}
+body.easy .group .name{width:auto;margin:0 6px 0 0;font-size:.7rem}
+body.easy #smartStatus{display:none}
+body.easy button{min-height:34px;padding:5px 12px;font-size:.9rem}
+body.easy nav{padding:0;gap:2px}
+body.easy .tabbtn{min-height:32px;padding:5px 10px}
+body.easy main{padding:6px 10px 8px}
+body.easy .panel{padding:6px 8px;margin-bottom:6px;border-radius:8px}
+body.easy .panelhead{margin-bottom:4px}
+body.easy h2{font-size:.95rem}
+body.easy .mini{font-size:.72rem}
+body.easy #spectrum,body.easy #waterfall{height:clamp(150px,calc((100dvh - 168px) / 2),340px)}
+body.easy .ap-legend{margin-top:4px;gap:4px}
+body.easy .ap-chip{font-size:.75rem;padding:2px 8px}
+@media(max-width:1100px){
+  body.easy .toolbar{flex-wrap:wrap}
+}
 .ap-legend{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .ap-chip{font-size:.8rem;padding:4px 10px;border-radius:999px;border:1px solid #238bb8;color:#9be7ff;background:#0a1822}
 .ap-chip.mine{border-color:var(--good);color:var(--good)}
 .ap-chip.tag{border-color:var(--bad);color:#ff8a8a;background:#3a171c;font-weight:600}
-.ap-chip.warn{border-color:var(--warn);color:var(--warn)}
+.ap-chip.ble{border-color:var(--purple);color:var(--purple)}
 #smartStatus{color:var(--muted);font-size:.9rem;max-width:52ch}
 button.modebtn{border-radius:999px;background:var(--panel);padding:6px 12px;font-size:.8rem;min-height:36px}
 body.pro button.modebtn{border-color:var(--accent);color:var(--accent)}
@@ -83,13 +107,14 @@ label.chk input{accent-color:var(--accent);width:16px;height:16px}
 <header>
   <div class="top">
     <div>
-      <h1>WaterFall <span>v0.4.15</span></h1>
+      <h1>WaterFall <span>v0.4.18</span></h1>
       <div class="sub">2,4 GHz energie · sítě z Wi-Fi na Pi · relé štítku</div>
     </div>
     <div class="status">
       <span id="wsBadge" class="badge warn">WS</span>
       <span id="probeBadge" class="badge warn">Sonda</span>
       <span id="fwBadge" class="badge">FW —</span>
+      <span id="probeBleBadge" class="badge">BLE RX —</span>
       <span id="modeBadge" class="badge">Nečinná</span>
       <span id="capBadge" class="badge lab-only">Capture vypnutý</span>
       <span id="bleBadge" class="badge pro-only">BLE</span>
@@ -104,7 +129,7 @@ label.chk input{accent-color:var(--accent);width:16px;height:16px}
   <div class="toolbar">
     <div class="group">
       <div class="name">Analýza</div>
-      <button id="smartStart" class="good">START</button>
+      <button id="smartStart" class="good" title="Naučí pokoj včetně Wi-Fi z Pi. Pak POWER ON — nová špička mimo sítě se označí.">START</button>
       <button id="smartStop" class="danger">STOP</button>
       <span id="smartStatus">START naučí pokoj (včetně Wi-Fi z Pi). Pak POWER ON — nová špička mimo sítě se označí.</span>
     </div>
@@ -123,7 +148,7 @@ label.chk input{accent-color:var(--accent);width:16px;height:16px}
     </div>
     <div class="group lab-only">
       <div class="name">Sledovat kanál</div>
-      <label>MHz<input id="watchF" class="small" type="number" value="2453"></label>
+      <label>MHz<input id="watchF" class="small" type="text" value="2453" title="Jedna MHz, nebo 2463,2466"></label>
       <label class="pro-only">Práh dBm<input id="watchT" class="small" type="number" value="-75"></label>
       <button id="watchStart" class="good">WATCH</button>
       <button id="watchStop" data-cmd="watch_stop" class="danger">Stop</button>
@@ -132,6 +157,7 @@ label.chk input{accent-color:var(--accent);width:16px;height:16px}
       <div class="name">Štítek (relé)</div>
       <button id="powerOn" class="good">POWER ON</button>
       <button id="powerOff" class="danger">POWER OFF</button>
+      <button id="wifiRefresh" title="Znovu načíst sítě z Wi-Fi na Pi (ne z donglu)">Sítě</button>
     </div>
     <div class="group pro-only" style="flex:1">
       <div class="name">Filtr</div>
@@ -139,18 +165,17 @@ label.chk input{accent-color:var(--accent);width:16px;height:16px}
       <button id="filterApply" class="primary">Použít</button>
       <button id="filterClear">Vymazat</button>
     </div>
+    <nav>
+      <button class="tabbtn active" data-tab="spectrumTab">Spektrum</button>
+      <button class="tabbtn" data-tab="peaksTab">Špičky</button>
+      <button class="tabbtn" data-tab="captureTab">Capture</button>
+      <button class="tabbtn" data-tab="devicesTab">Zařízení</button>
+      <button class="tabbtn" data-tab="pcapTab">PCAP</button>
+      <button class="tabbtn" data-tab="settingsTab">Nastavení</button>
+      <button class="tabbtn" data-tab="helpTab">Nápověda</button>
+    </nav>
   </div>
 </header>
-
-<nav>
-  <button class="tabbtn active" data-tab="spectrumTab">Spektrum</button>
-  <button class="tabbtn" data-tab="peaksTab">Špičky</button>
-  <button class="tabbtn" data-tab="captureTab">Capture</button>
-  <button class="tabbtn" data-tab="devicesTab">Zařízení</button>
-  <button class="tabbtn" data-tab="pcapTab">PCAP</button>
-  <button class="tabbtn" data-tab="settingsTab">Nastavení</button>
-  <button class="tabbtn" data-tab="helpTab">Nápověda</button>
-</nav>
 
 <main>
 <section id="spectrumTab" class="tab active">
@@ -364,21 +389,25 @@ label.chk input{accent-color:var(--accent);width:16px;height:16px}
           <label>Rozsah 0–100<input id="rangeA" class="small" type="number" value="0"></label>
           <label>až<input id="rangeB" class="small" type="number" value="100"></label>
           <button id="rangeSet">Nastavit</button>
-          <label>Dwell ms<input id="dwell" class="small" type="number" value="4"></label>
+          <label>Dwell ms<input id="dwell" class="small" type="number" value="2"></label>
           <button id="dwellSet">Nastavit</button>
           <label>Krok MHz<select id="step" class="small"><option>1</option><option>2</option><option>5</option><option>10</option></select></label>
           <button id="stepSet">Nastavit</button>
-          <label>RSSI<select id="rssiMode" class="medium"><option>LAST</option><option>MAX</option><option>AVG</option></select></label>
+          <label>RSSI<select id="rssiMode" class="medium"><option>LAST</option><option selected>MAX</option><option>AVG</option></select></label>
           <button id="rssiModeSet">Nastavit</button>
-          <label>Vzorek WATCH µs<input id="watchS" class="small" type="number" value="200"></label>
+          <label>Vzorek WATCH µs<input id="watchS" class="small" type="number" value="100"></label>
         </div>
       </div>
       <div class="panel pro-only">
         <div class="panelhead"><h2>Pozorovatelé s identitou</h2></div>
-        <p class="hint">Zapínej jen když chceš inventář okolí. Active BLE scan sám vysílá.</p>
+        <p class="hint">Dongle umí jen RX. BLE na donglu je advertising observer (žádný connect, žádný inzerát). BLE na Pi je zvlášť a v active módu sám vysílá.</p>
         <div class="chips" style="margin-top:8px">
-          <button id="bleStart" class="good">BLE zapnout</button>
-          <button id="bleStop">BLE vypnout</button>
+          <button id="probeBleStart" class="good">BLE na donglu</button>
+          <button id="probeBleStop">Dongle BLE stop</button>
+          <label>Interleave ms<input id="bleInterleave" class="small" type="number" value="30"></label>
+          <button id="bleInterleaveSet">Nastavit</button>
+          <button id="bleStart" class="good">BLE na Pi</button>
+          <button id="bleStop">Pi BLE vypnout</button>
           <button id="wifiStart" class="good">Wi-Fi monitor</button>
           <button id="wifiStop">Wi-Fi vypnout</button>
         </div>
@@ -462,9 +491,9 @@ label.chk input{accent-color:var(--accent);width:16px;height:16px}
   </div>
   <div class="panel">
     <h3>Kdy použít SCAN a kdy WATCH</h3>
-    <p><b>SCAN</b> je přehled celého pásma (~2× za sekundu). Hodí se na „kde to pípá?“.</p>
-    <p><b>WATCH</b> opustí přehled a sedí na jedné MHz. Hodí se na časování: přiložení NFC, zapnutí relé, krátký burst. V Easy zadáš jen MHz a WATCH.</p>
-    <p>Nejde obojí naráz — sonda má jedno rádio.</p>
+    <p><b>SCAN</b> je přehled celého pásma (0.7.3: dwell 2 ms + MAX, rychlejší než ~2 Hz). Po každém sweepu sonda ~30 ms poslouchá BLE advertising (37/38/39). Hodí se na „kde to pípá?“.</p>
+    <p><b>WATCH</b> opustí přehled a sedí na jedné nebo několika MHz (třeba <code>2463,2466</code>). Hodí se na časování: přiložení NFC, zapnutí relé, krátký burst. V Easy zadáš jen MHz a WATCH.</p>
+    <p>Nejde energy SCAN a WATCH naráz — sonda má jedno rádio. BLE na donglu je jen příjem; BLE na Pi (Pro) je jiný observer a active scan sám vysílá.</p>
   </div>
   <div class="panel">
     <h3>Easy</h3>
@@ -476,7 +505,7 @@ label.chk input{accent-color:var(--accent);width:16px;height:16px}
       <tr><td><b>Režim Easy / Pro</b></td><td>Schová nebo ukáže laboratorní ovládání.</td></tr>
       <tr><td><b>Capture START / STOP</b></td><td>Bez START se spektrum jen kreslí. Se START se události zapisují do SQLite.</td></tr>
       <tr><td><b>SCAN</b></td><td>Dokola RSSI 2400–2500 MHz.</td></tr>
-      <tr><td><b>WATCH</b></td><td>Jedna frekvence, bursty v čase.</td></tr>
+      <tr><td><b>WATCH</b></td><td>Jedna nebo několik MHz, bursty v čase.</td></tr>
       <tr><td><b>POWER ON / OFF</b></td><td>Relé na napájení štítku. V Capture se zapíše marker POWER_ON / POWER_OFF.</td></tr>
     </table>
   </div>
@@ -495,7 +524,7 @@ label.chk input{accent-color:var(--accent);width:16px;height:16px}
       <tr><td><b>RF_SWEEP</b></td><td>Jeden průchod pásmem. Peak MHz a RSSI. Zařízení neznáme.</td></tr>
       <tr><td><b>RF_BURST</b></td><td>WATCH: čas a síla na jedné MHz. Zařízení neznáme.</td></tr>
       <tr><td><b>RF_REGION</b></td><td>Odhad „vypadá jako Wi-Fi / BLE“. Není to paket.</td></tr>
-      <tr><td><b>BLE_ADV / WIFI_FRAME / NFC_*</b></td><td>Až když běží observer v Pro. Tady už může být adresa, SSID nebo UID.</td></tr>
+      <tr><td><b>BLE_ADV / WIFI_FRAME / NFC_*</b></td><td>BLE z donglu (Probe 0.7.3, jen RX) nebo z Pi; Wi-Fi/NFC až když běží observer v Pro.</td></tr>
     </table>
   </div>
   <div class="panel">
@@ -524,7 +553,7 @@ label.chk input{accent-color:var(--accent);width:16px;height:16px}
   let baseline = null, lastSweepWall = 0, rate = null, lastData = 0, state = {};
   let specAxes = null, inspectFreq = 2453, selectedDevice = "", selectedPeak = 0;
   let chip = "", peakByFreq = {}, lastProbeErr = "";
-  let wifiAps = [], smartOn = false, roomMax = null, relayWaitUntil = 0, tagTracks = [];
+  let wifiAps = [], probeBleAds = [], smartOn = false, roomMax = null, relayWaitUntil = 0, tagTracks = [];
   const relayHits = new Uint8Array(101);
   const spec = $("spectrum"), wf = $("waterfall"), tr = $("trend"), bt = $("burstTrend");
   const S = spec.getContext("2d"), W = wf.getContext("2d"), T = tr.getContext("2d"), B = bt.getContext("2d");
@@ -579,30 +608,57 @@ label.chk input{accent-color:var(--accent);width:16px;height:16px}
   function paintApLegend() {
     const el = $("apLegend");
     if (!el) return;
-    const bands = apBands();
     const five = wifiAps.filter(a => !a.in_2g);
-    let html = bands.map(b => {
-      const cls = b.in_use ? "ap-chip mine" : "ap-chip";
-      const who = b.in_use ? "Pi je na této síti · " : "";
-      return `<span class="${cls}">${who}Wi-Fi ch ${b.channel} (${b.center} MHz) · ${esc(b.ssids.slice(0, 3).join(", "))}</span>`;
+    let html = wifiAps.filter(a => a.in_2g).map(a => {
+      const cls = a.in_use ? "ap-chip mine" : "ap-chip";
+      const who = a.in_use ? "Pi · " : "";
+      return `<span class="${cls}">${who}ch ${a.channel} ${esc(a.label)}</span>`;
     }).join("");
     html += tagTracks.map(t =>
       `<span class="ap-chip tag">po relé ${t.peak} MHz (${t.rssi} dBm)</span>`
     ).join("");
-    if (five.length) html += `<span class="ap-chip warn">${five.length}× 5 GHz — dongle nevidí</span>`;
-    if (!wifiAps.length) html += `<span class="ap-chip warn">zatím žádný Wi-Fi scan z Pi</span>`;
+    html += five.map(a =>
+      `<span class="ap-chip warn">${esc(a.label)} · 5 GHz — dongle nevidí</span>`
+    ).join("");
+    html += probeBleAds.map(a => {
+      const label = a.name || a.mac || "?";
+      return `<span class="ap-chip ble">BLE ${esc(label)} ${a.rssi_dbm} dBm</span>`;
+    }).join("");
+    if (!wifiAps.length) html += `<span class="ap-chip warn">žádný Wi-Fi scan — klikni Sítě</span>`;
     el.innerHTML = html;
+  }
+  function applyProbeBle(m) {
+    const mac = m.mac || "?";
+    const now = Date.now();
+    probeBleAds = probeBleAds.filter(a => now - a.last < 20000);
+    const prev = probeBleAds.find(a => a.mac === mac);
+    if (prev) {
+      prev.name = m.name || prev.name;
+      prev.rssi_dbm = m.rssi_dbm;
+      prev.freq_mhz = m.freq_mhz;
+      prev.last = now;
+    } else {
+      probeBleAds.unshift({ mac, name: m.name || "", rssi_dbm: m.rssi_dbm, freq_mhz: m.freq_mhz, last: now });
+      if (probeBleAds.length > 8) probeBleAds.length = 8;
+    }
+    const badge = $("probeBleBadge");
+    if (badge) {
+      badge.textContent = "BLE RX " + probeBleAds.length;
+      badge.className = "badge ok";
+    }
+    paintApLegend();
   }
   function applyWifiAps(msg) {
     wifiAps = msg.aps || [];
     const n2 = wifiAps.filter(a => a.in_2g).length;
+    const n5 = wifiAps.filter(a => !a.in_2g).length;
     const badge = $("apBadge");
     if (msg.ok === false) {
       badge.textContent = "Wi-Fi scan chyba";
       badge.className = "badge warn";
       badge.title = msg.error || "";
     } else {
-      badge.textContent = n2 ? `Wi-Fi ${n2} sítí 2,4 GHz` : "Wi-Fi 0 sítí 2,4 GHz";
+      badge.textContent = n2 ? `Wi-Fi ${n2} sítí 2,4 GHz` : (n5 ? "Wi-Fi jen 5 GHz" : "Wi-Fi 0 sítí");
       badge.className = "badge " + (n2 ? "ok" : "warn");
       badge.title = (msg.iface || "") + " " + (msg.backend || "");
     }
@@ -686,6 +742,7 @@ label.chk input{accent-color:var(--accent);width:16px;height:16px}
     markOn("smartStart", true); markOn("smartStop", false);
     markOn("scanStart", true); markOn("scanStop", false); markOn("watchStart", false);
     post("/api/command/scan_start").catch(e => log(e.message));
+    post("/api/wifi/survey").catch(() => {});
     setSmartStatus("Učím se pokoj. Až se ve waterfallu usadí Wi-Fi pásy, dej POWER ON.");
     paintApLegend();
   }
@@ -947,7 +1004,22 @@ label.chk input{accent-color:var(--accent);width:16px;height:16px}
     if (s.probe_error && s.probe_error !== lastProbeErr) log("PROBE " + s.probe_error);
     lastProbeErr = s.probe_error || "";
     $("fwBadge").textContent = "FW " + (s.firmware || "—");
-    $("modeBadge").textContent = s.watch_enabled ? `WATCH ${s.watch_freq_mhz || "?"} MHz` : s.scan_enabled ? "SCAN" : "Nečinná";
+    const bleRx = $("probeBleBadge");
+    if (bleRx) {
+      if (s.probe_ble_scan) {
+        bleRx.textContent = "BLE RX dongle SCAN";
+        bleRx.className = "badge ok";
+      } else if (s.probe_ble_rx) {
+        bleRx.textContent = probeBleAds.length ? ("BLE RX " + probeBleAds.length) : "BLE RX sonda";
+        bleRx.className = "badge ok";
+        bleRx.title = "Advertising observer na donglu, jen příjem. Interleave " + (s.probe_ble_interleave_ms ?? "—") + " ms";
+      } else {
+        bleRx.textContent = "BLE RX —";
+        bleRx.className = "badge";
+        bleRx.title = "Reflash dongle na Probe 0.7.3 pro BLE RX na sondě";
+      }
+    }
+    $("modeBadge").textContent = s.watch_enabled ? `WATCH ${s.watch_freqs || s.watch_freq_mhz || "?"} MHz` : s.probe_ble_scan ? "BLE SCAN" : s.scan_enabled ? "SCAN" : "Nečinná";
     $("modeBadge").className = "badge " + ((s.watch_enabled || s.scan_enabled) ? "ok" : "");
     $("capBadge").textContent = s.capture_active ? `Capture #${s.capture_session_id}` : "Capture vypnutý";
     $("capBadge").className = "badge " + (s.capture_active ? "ok" : "");
@@ -1002,6 +1074,8 @@ label.chk input{accent-color:var(--accent);width:16px;height:16px}
     markOn("csvStop", s.recording === false);
     markOn("expStart", s.experiment_recording);
     markOn("expStop", s.experiment_recording === false);
+    markOn("probeBleStart", s.probe_ble_scan);
+    markOn("probeBleStop", s.probe_ble_scan === false);
     markOn("bleStart", s.ble_connected);
     markOn("bleStop", s.ble_connected === false);
     markOn("wifiStart", s.wifi_connected);
@@ -1044,7 +1118,16 @@ label.chk input{accent-color:var(--accent);width:16px;height:16px}
     if (t === "RF_SWEEP") return { cls: "energy", title: "Průchod pásmem", text: "Sonda změřila RSSI na mnoha frekvencích. Víme, kde bylo nejsilněji. Nevíme, které zařízení to bylo — to RSSI neřekne." };
     if (t === "RF_BURST") return { cls: "energy", title: "Krátká aktivita na jedné frekvenci", text: "WATCH hlídal jeden kanál a zachytil nárůst nad práh. Máme čas a sílu. Identita zařízení chybí." };
     if (t === "RF_REGION") return { cls: "guess", title: "Odhad podle tvaru spektra", text: "WaterFall tipuje Wi-Fi / BLE / neznámé podle šířky a středu energie. Není to dekódovaný paket." };
-    if (t === "BLE_ADV") return { cls: "decoded", title: "BLE advertisement", text: "Dekódovaný BLE paket. Adresa a jméno jsou pozorované identifikátory — adresa může být náhodná." };
+    if (t === "BLE_ADV") {
+      const fromProbe = e.source === "NRF52840";
+      return {
+        cls: "decoded",
+        title: fromProbe ? "BLE advertisement ze sondy" : "BLE advertisement",
+        text: fromProbe
+          ? "Dongle zachytil BLE advertising PDU (jen RX). Adresa a jméno jsou pozorované identifikátory — adresa může být náhodná."
+          : "Dekódovaný BLE paket z Bluetooth na Raspberry. Adresa a jméno jsou pozorované identifikátory — adresa může být náhodná.",
+      };
+    }
     if (t === "WIFI_FRAME") return { cls: "decoded", title: "Wi-Fi rámec", text: "Skutečný 802.11 rámec z monitor mode. MAC a SSID platí pro tento rámec. Šifrovaná data zůstávají šifrovaná." };
     if (t.startsWith("NFC")) return { cls: "decoded", title: "NFC událost", text: "Čtečka TWN4 viděla tag. UID je identita čipu, ne RF adresa v 2,4 GHz." };
     if (t.startsWith("CAPTURE") || t.startsWith("POWER") || t.includes("MARKER") || e.protocol === "MARKER" || e.protocol === "CONTROL")
@@ -1255,6 +1338,7 @@ label.chk input{accent-color:var(--accent);width:16px;height:16px}
       else if (m.type === "sweep") sweep(m);
       else if (m.type === "wifi_aps") applyWifiAps(m);
       else if (m.type === "burst") burst(m);
+      else if (m.type === "probe_ble") applyProbeBle(m);
       else if (m.type === "history") { waterRows = []; trends = []; m.sweeps.forEach(x => sweep(x)); }
       else if (m.type === "log") log(m.line);
       else if (m.type === "capture_event") { if ($("captureTab").classList.contains("active")) loadEvents(); }
@@ -1278,7 +1362,7 @@ label.chk input{accent-color:var(--accent);width:16px;height:16px}
   $("inspectClose").onclick = () => { $("inspect").hidden = true; };
   $("inspectWatch").onclick = () => {
     $("watchF").value = inspectFreq;
-    post(`/api/watch/start/${inspectFreq}/${$("watchT").value}/${$("watchS").value}`).catch(e => log(e.message));
+    armWatch().catch(e => log(e.message));
   };
   $("inspectSave").onclick = () => {
     const rssi = rssiAt(inspectFreq);
@@ -1330,9 +1414,18 @@ label.chk input{accent-color:var(--accent);width:16px;height:16px}
   $("dwellSet").onclick = () => post(`/api/dwell/${$("dwell").value}`).catch(e => log(e.message));
   $("stepSet").onclick = () => post(`/api/step/${$("step").value}`).catch(e => log(e.message));
   $("rssiModeSet").onclick = () => post(`/api/rssimode/${$("rssiMode").value}`).catch(e => log(e.message));
-  $("watchStart").onclick = () => {
+  function armWatch() {
+    const spec = String($("watchF").value || "").trim();
+    const th = Number($("watchT").value);
+    const us = Number($("watchS").value);
     markOn("watchStart", true); markOn("watchStop", false); markOn("scanStart", false); markOn("scanStop", true);
-    post(`/api/watch/start/${$("watchF").value}/${$("watchT").value}/${$("watchS").value}`).catch(e => log(e.message));
+    if (spec.includes(",")) {
+      return post("/api/watch/start", { freqs: spec, threshold_dbm: th, sample_us: us });
+    }
+    return post(`/api/watch/start/${spec}/${th}/${us}`);
+  }
+  $("watchStart").onclick = () => {
+    armWatch().then(() => log("WATCH " + $("watchF").value + " MHz")).catch(e => log(e.message));
   };
   $("settingsSave").onclick = () => post("/api/settings/runtime", {
     rf_region_threshold_db: Number($("aThreshold").value),
@@ -1376,7 +1469,7 @@ label.chk input{accent-color:var(--accent);width:16px;height:16px}
   $("peakHold").onclick = () => {
     if (!selectedPeak) { log("Vyber špičku"); return; }
     $("watchF").value = selectedPeak;
-    post(`/api/watch/start/${selectedPeak}/${$("watchT").value}/${$("watchS").value}`).then(() => log("WATCH " + selectedPeak + " MHz")).catch(e => log(e.message));
+    armWatch().then(() => log("WATCH " + selectedPeak + " MHz")).catch(e => log(e.message));
   };
   $("peakFilter").onclick = () => {
     if (!selectedPeak) { log("Vyber špičku"); return; }
@@ -1396,6 +1489,9 @@ label.chk input{accent-color:var(--accent);width:16px;height:16px}
     loadEvents();
   };
 
+  $("probeBleStart").onclick = () => post("/api/command/ble_scan_start").then(() => log("BLE SCAN na donglu")).catch(e => log(e.message));
+  $("probeBleStop").onclick = () => post("/api/command/ble_scan_stop").then(() => log("BLE SCAN stop")).catch(e => log(e.message));
+  $("bleInterleaveSet").onclick = () => post("/api/ble_probe/interleave/" + $("bleInterleave").value).catch(e => log(e.message));
   $("bleStart").onclick = () => post("/api/ble/start").then(j => log(j.message)).catch(e => log(e.message));
   $("bleStop").onclick = () => post("/api/ble/stop").then(j => log(j.message)).catch(e => log(e.message));
   $("wifiStart").onclick = () => post("/api/wifi/start").then(j => log(j.message)).catch(e => log(e.message));
@@ -1452,6 +1548,10 @@ label.chk input{accent-color:var(--accent);width:16px;height:16px}
   $("powerOffLab").onclick = () => setPower(false);
   $("smartStart").onclick = startSmart;
   $("smartStop").onclick = stopSmart;
+  $("wifiRefresh").onclick = () => {
+    $("apBadge").textContent = "Wi-Fi skenuji…";
+    post("/api/wifi/survey").then(j => log(j.message || "scan")).catch(e => log(e.message));
+  };
 
   setInterval(() => { $("mAge").textContent = lastData ? ((Date.now() - lastData) / 1000).toFixed(1) + " s" : "—"; }, 250);
   window.onresize = () => { drawSpec(); drawWf(); drawTrend(); drawBursts(); };

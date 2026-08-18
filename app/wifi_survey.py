@@ -208,6 +208,7 @@ class WifiSurveyWatcher(threading.Thread):
         self.interface = interface
         self.mock = mock
         self.stop_event = threading.Event()
+        self.wake = threading.Event()
         self.lock = threading.Lock()
         self.aps: list[dict[str, Any]] = []
         self.error = ""
@@ -225,6 +226,9 @@ class WifiSurveyWatcher(threading.Thread):
                 "backend": self.backend,
                 "aps": list(self.aps),
             }
+
+    def kick(self):
+        self.wake.set()
 
     def _publish(self):
         self.emit({"type": "wifi_aps", **self.snapshot()})
@@ -250,33 +254,29 @@ class WifiSurveyWatcher(threading.Thread):
     def _scan_nmcli(self, rescan: bool) -> list[dict[str, Any]]:
         if not shutil.which("nmcli"):
             raise RuntimeError("nmcli není v PATH")
+        argv = ["nmcli", "-t", "-f", "IN-USE,SSID,BSSID,CHAN,FREQ,SIGNAL", "device", "wifi", "list"]
         if rescan:
-            try:
-                _run(["nmcli", "device", "wifi", "rescan"], timeout=15)
-                time.sleep(1.2)
-            except Exception as exc:
-                log.debug("wifi rescan: %s", exc)
-        out = _run(
-            ["nmcli", "-t", "-f", "IN-USE,SSID,BSSID,CHAN,FREQ,SIGNAL", "device", "wifi", "list"],
-            timeout=12,
-        )
+            argv.extend(["--rescan", "yes"])
+        out = _run(argv, timeout=20)
         self.backend = "nmcli"
         return parse_nmcli_list(out)
 
-    def _scan_iw(self) -> list[dict[str, Any]]:
+    def _scan_iw(self, force: bool = False) -> list[dict[str, Any]]:
         iface = self._detect_iface()
         self.iface_used = iface
         if not shutil.which("iw"):
             raise RuntimeError("ani nmcli, ani iw")
-        # dump uses last scan; does not require monitor mode
-        try:
-            out = _run(["iw", "dev", iface, "scan", "dump"], timeout=8)
-        except Exception:
+        if force:
             out = _run(["iw", "dev", iface, "scan"], timeout=20)
-        self.backend = "iw"
+        else:
+            try:
+                out = _run(["iw", "dev", iface, "scan", "dump"], timeout=8)
+            except Exception:
+                out = _run(["iw", "dev", iface, "scan"], timeout=20)
+        self.backend = "iw" if force or self.backend != "nmcli" else self.backend + "+iw"
         return parse_iw_dump(out)
 
-    def _scan_once(self, rescan: bool) -> list[dict[str, Any]]:
+    def _scan_once(self, rescan: bool, force_iw: bool = False) -> list[dict[str, Any]]:
         if self.mock:
             self.backend = "mock"
             self.iface_used = "mock"
@@ -288,24 +288,37 @@ class WifiSurveyWatcher(threading.Thread):
                 quality=80,
                 in_use=True,
                 source="mock",
+            ), _normalize_ap(
+                ssid="Phone-AP",
+                bssid="02:00:00:00:00:02",
+                channel=1,
+                freq_mhz=2412,
+                quality=55,
+                in_use=False,
+                source="mock",
             )]
+        aps: list[dict[str, Any]] = []
+        errors: list[str] = []
         try:
-            aps = self._scan_nmcli(rescan)
-            self.iface_used = self.iface_used or "nmcli"
-            return aps
-        except Exception as nm_exc:
-            try:
-                aps = self._scan_iw()
-                self.error = ""
-                return aps
-            except Exception as iw_exc:
-                raise RuntimeError(f"nmcli: {nm_exc}; iw: {iw_exc}") from iw_exc
+            aps.extend(self._scan_nmcli(rescan))
+        except Exception as exc:
+            errors.append(f"nmcli: {exc}")
+        try:
+            aps.extend(self._scan_iw(force=force_iw))
+        except Exception as exc:
+            errors.append(f"iw: {exc}")
+        if not aps:
+            raise RuntimeError("; ".join(errors) or "žádné sítě")
+        if errors:
+            log.debug("wifi survey partial: %s", "; ".join(errors))
+        return aps
 
     def run(self):
-        first = True
+        urgent = True
         while not self.stop_event.is_set():
+            self.wake.clear()
             try:
-                aps = [a for a in self._scan_once(rescan=not first) if a]
+                aps = [a for a in self._scan_once(rescan=True, force_iw=urgent) if a]
                 # unique by BSSID, keep strongest / in-use
                 by: dict[str, dict[str, Any]] = {}
                 for ap in aps:
@@ -327,7 +340,8 @@ class WifiSurveyWatcher(threading.Thread):
                 with self.lock:
                     self.ok = False
                     self.error = str(exc)[:240]
-                log.warning("wifi survey: %s", exc)
                 self._publish()
-            first = False
-            self.stop_event.wait(self.interval_s)
+            urgent = False
+            self.wake.wait(self.interval_s)
+            if self.wake.is_set():
+                urgent = True

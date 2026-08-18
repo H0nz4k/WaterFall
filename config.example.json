@@ -40,7 +40,7 @@
     "wifi_survey": {
         "enabled": true,
         "interface": "auto",
-        "interval_s": 25,
+        "interval_s": 12,
         "note": "Běžný AP scan (nmcli/iw) na STA Wi-Fi. SSID+kanál se páruje se spektrem. Není to monitor mode."
     },
   "nfc_reader": {
