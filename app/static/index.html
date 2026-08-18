@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>WaterFall 0.4.14</title>
+<title>WaterFall 0.4.15</title>
 <style>
 :root{color-scheme:dark;--bg:#071019;--panel:#0c1722;--panel2:#101d29;--border:#263746;--text:#e8f0f7;--muted:#8ca1b4;--accent:#46c7ff;--good:#5ce08a;--warn:#ffd166;--bad:#ff6b6b;--purple:#c792ea}
 *{box-sizing:border-box}
@@ -63,9 +63,16 @@ tr.clickable{cursor:pointer}tr.clickable:hover{background:#132536}tr.selected{ba
   .inspect{left:12px;right:12px;width:auto}
   input.wide,input.filter{width:100%}
 }
-body.easy .pro-only{display:none !important}
-body.easy .tabbtn[data-tab="devicesTab"],body.easy .tabbtn[data-tab="pcapTab"]{display:none}
+body.easy .pro-only,body.easy .lab-only{display:none !important}
+body.easy .tabbtn[data-tab="devicesTab"],body.easy .tabbtn[data-tab="pcapTab"],
+body.easy .tabbtn[data-tab="peaksTab"],body.easy .tabbtn[data-tab="captureTab"]{display:none}
 body.easy .metrics{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.ap-legend{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.ap-chip{font-size:.8rem;padding:4px 10px;border-radius:999px;border:1px solid #238bb8;color:#9be7ff;background:#0a1822}
+.ap-chip.mine{border-color:var(--good);color:var(--good)}
+.ap-chip.tag{border-color:var(--bad);color:#ff8a8a;background:#3a171c;font-weight:600}
+.ap-chip.warn{border-color:var(--warn);color:var(--warn)}
+#smartStatus{color:var(--muted);font-size:.9rem;max-width:52ch}
 button.modebtn{border-radius:999px;background:var(--panel);padding:6px 12px;font-size:.8rem;min-height:36px}
 body.pro button.modebtn{border-color:var(--accent);color:var(--accent)}
 label.chk{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-size:.85rem;cursor:pointer}
@@ -76,38 +83,45 @@ label.chk input{accent-color:var(--accent);width:16px;height:16px}
 <header>
   <div class="top">
     <div>
-      <h1>WaterFall <span>v0.4.14</span></h1>
-      <div class="sub">Co se děje v pásmu 2,4 GHz · špičky · capture</div>
+      <h1>WaterFall <span>v0.4.15</span></h1>
+      <div class="sub">2,4 GHz energie · sítě z Wi-Fi na Pi · relé štítku</div>
     </div>
     <div class="status">
       <span id="wsBadge" class="badge warn">WS</span>
       <span id="probeBadge" class="badge warn">Sonda</span>
       <span id="fwBadge" class="badge">FW —</span>
       <span id="modeBadge" class="badge">Nečinná</span>
-      <span id="capBadge" class="badge">Capture vypnutý</span>
+      <span id="capBadge" class="badge lab-only">Capture vypnutý</span>
       <span id="bleBadge" class="badge pro-only">BLE</span>
       <span id="wifiBadge" class="badge pro-only">Wi-Fi</span>
-      <span id="nfcBadge" class="badge">NFC</span>
-      <span id="peakBadge" class="badge">Špičky 0</span>
+      <span id="nfcBadge" class="badge lab-only">NFC</span>
+      <span id="peakBadge" class="badge lab-only">Špičky 0</span>
+      <span id="apBadge" class="badge">Wi-Fi sítě —</span>
       <span id="powerBadge" class="badge">Štítek —</span>
       <button id="uiModeBtn" class="badge modebtn">Režim: Easy</button>
     </div>
   </div>
   <div class="toolbar">
     <div class="group">
+      <div class="name">Analýza</div>
+      <button id="smartStart" class="good">START</button>
+      <button id="smartStop" class="danger">STOP</button>
+      <span id="smartStatus">START naučí pokoj (včetně Wi-Fi z Pi). Pak POWER ON — nová špička mimo sítě se označí.</span>
+    </div>
+    <div class="group lab-only">
       <div class="name">Capture</div>
       <label>Název session<input id="capLabel" class="wide" placeholder="např. NFC wake 2453 MHz"></label>
       <button id="capStart" class="good">START</button>
       <button id="capStop" class="danger">STOP</button>
       <button id="capExport" class="pro-only">Uložit JSONL</button>
     </div>
-    <div class="group">
+    <div class="group lab-only">
       <div class="name">Pásmo</div>
       <button id="scanStart" data-cmd="scan_start" class="primary">SCAN</button>
       <button id="scanStop" data-cmd="scan_stop">Stop scan</button>
       <button data-cmd="once" class="pro-only">Jeden sweep</button>
     </div>
-    <div class="group">
+    <div class="group lab-only">
       <div class="name">Sledovat kanál</div>
       <label>MHz<input id="watchF" class="small" type="number" value="2453"></label>
       <label class="pro-only">Práh dBm<input id="watchT" class="small" type="number" value="-75"></label>
@@ -140,7 +154,7 @@ label.chk input{accent-color:var(--accent);width:16px;height:16px}
 
 <main>
 <section id="spectrumTab" class="tab active">
-  <div class="metrics">
+  <div class="metrics lab-only">
     <div class="metric"><div class="k">Sweep</div><div class="v" id="mSweep">—</div></div>
     <div class="metric"><div class="k">Rychlost</div><div class="v" id="mRate">—</div></div>
     <div class="metric"><div class="k">Nejsilnější</div><div class="v" id="mPeakF">—</div></div>
@@ -153,7 +167,7 @@ label.chk input{accent-color:var(--accent);width:16px;height:16px}
   <div class="panel">
     <div class="panelhead">
       <h2>Živé spektrum 2400–2500 MHz</h2>
-      <div>
+      <div class="lab-only">
         <button id="baselineSet">Zapamatovat klid</button>
         <button id="baselineClear">Zrušit</button>
         <span id="baselineText" class="mini">klikni do grafu na zajímavou frekvenci</span>
@@ -164,8 +178,9 @@ label.chk input{accent-color:var(--accent);width:16px;height:16px}
   <div class="panel">
     <div class="panelhead"><h2>Waterfall</h2><span class="mini">čas dolů · frekvence doprava · světlejší = silnější signál</span></div>
     <canvas id="waterfall"></canvas>
+    <div id="apLegend" class="ap-legend"></div>
   </div>
-  <div class="grid2">
+  <div class="grid2 lab-only">
     <div class="panel">
       <div class="panelhead">
         <h2>Co ruší pásmo</h2>
@@ -336,7 +351,7 @@ label.chk input{accent-color:var(--accent);width:16px;height:16px}
     <div>
       <div class="panel">
         <div class="panelhead"><h2>Režim zobrazení</h2></div>
-        <p class="hint">Easy nechá nahoře jen SCAN, capture a WATCH. Pro přidá krok sweepu, BLE/Wi-Fi, CSV, PCAP a katalog zařízení.</p>
+        <p class="hint">Easy: START, relé, spektrum a waterfall. Sítě z Wi-Fi na Raspberry se kreslí do grafu (SSID + kanál). Není to čtení paketů z donglu. Pro přidá capture, WATCH, BLE monitor a katalog.</p>
         <div class="chips" style="margin-top:8px">
           <button id="uiEasy" class="activechip">Easy</button>
           <button id="uiPro">Pro</button>
@@ -452,8 +467,8 @@ label.chk input{accent-color:var(--accent);width:16px;height:16px}
     <p>Nejde obojí naráz — sonda má jedno rádio.</p>
   </div>
   <div class="panel">
-    <h3>Easy a Pro</h3>
-    <p>Výchozí je <b>Easy</b>: SCAN, capture, WATCH, relé štítku, Spektrum / Špičky / Capture. <b>Pro</b> (tlačítko nahoře) přidá krok sweepu, BLE/Wi-Fi observer, CSV, PCAP a katalog zařízení. Volba zůstane v prohlížeči.</p>
+    <h3>Easy</h3>
+    <p><b>START</b> zapne SCAN a zapamatuje pokoj. Do spektra a waterfallu se kreslí sítě z Wi-Fi čipu na Raspberry (SSID + kanál) — to není dongle, jen párování „energie na 2437 MHz ≈ kanál 6“. Pak <b>POWER ON</b>: nová úzká špička mimo ty sítě se označí jako kandidát po relé. <b>Pro</b> přidá capture, WATCH, BLE/monitor a katalog.</p>
   </div>
   <div class="panel">
     <h3>Tlačítka nahoře</h3>
@@ -509,6 +524,8 @@ label.chk input{accent-color:var(--accent);width:16px;height:16px}
   let baseline = null, lastSweepWall = 0, rate = null, lastData = 0, state = {};
   let specAxes = null, inspectFreq = 2453, selectedDevice = "", selectedPeak = 0;
   let chip = "", peakByFreq = {}, lastProbeErr = "";
+  let wifiAps = [], smartOn = false, roomMax = null, relayWaitUntil = 0, tagTracks = [];
+  const relayHits = new Uint8Array(101);
   const spec = $("spectrum"), wf = $("waterfall"), tr = $("trend"), bt = $("burstTrend");
   const S = spec.getContext("2d"), W = wf.getContext("2d"), T = tr.getContext("2d"), B = bt.getContext("2d");
 
@@ -538,6 +555,146 @@ label.chk input{accent-color:var(--accent);width:16px;height:16px}
     const c = st[i].map((v, k) => Math.round(v + (st[j][k] - v) * u));
     return `rgb(${c.join(",")})`;
   }
+  function mhzX(mhz, x0, x1) {
+    return x0 + ((mhz - 2400) / 100) * (x1 - x0);
+  }
+  function apBands() {
+    const byCh = new Map();
+    for (const ap of wifiAps) {
+      if (!ap.in_2g || !ap.channel) continue;
+      const g = byCh.get(ap.channel) || {
+        channel: ap.channel, center: ap.freq_mhz,
+        start: ap.start_mhz ?? ap.freq_mhz - 10, end: ap.end_mhz ?? ap.freq_mhz + 10,
+        ssids: [], in_use: false,
+      };
+      if (!g.ssids.includes(ap.label)) g.ssids.push(ap.label);
+      g.in_use = g.in_use || ap.in_use;
+      byCh.set(ap.channel, g);
+    }
+    return [...byCh.values()];
+  }
+  function inWifiBand(mhz) {
+    return apBands().some(b => mhz >= b.start && mhz <= b.end);
+  }
+  function paintApLegend() {
+    const el = $("apLegend");
+    if (!el) return;
+    const bands = apBands();
+    const five = wifiAps.filter(a => !a.in_2g);
+    let html = bands.map(b => {
+      const cls = b.in_use ? "ap-chip mine" : "ap-chip";
+      const who = b.in_use ? "Pi je na této síti · " : "";
+      return `<span class="${cls}">${who}Wi-Fi ch ${b.channel} (${b.center} MHz) · ${esc(b.ssids.slice(0, 3).join(", "))}</span>`;
+    }).join("");
+    html += tagTracks.map(t =>
+      `<span class="ap-chip tag">po relé ${t.peak} MHz (${t.rssi} dBm)</span>`
+    ).join("");
+    if (five.length) html += `<span class="ap-chip warn">${five.length}× 5 GHz — dongle nevidí</span>`;
+    if (!wifiAps.length) html += `<span class="ap-chip warn">zatím žádný Wi-Fi scan z Pi</span>`;
+    el.innerHTML = html;
+  }
+  function applyWifiAps(msg) {
+    wifiAps = msg.aps || [];
+    const n2 = wifiAps.filter(a => a.in_2g).length;
+    const badge = $("apBadge");
+    if (msg.ok === false) {
+      badge.textContent = "Wi-Fi scan chyba";
+      badge.className = "badge warn";
+      badge.title = msg.error || "";
+    } else {
+      badge.textContent = n2 ? `Wi-Fi ${n2} sítí 2,4 GHz` : "Wi-Fi 0 sítí 2,4 GHz";
+      badge.className = "badge " + (n2 ? "ok" : "warn");
+      badge.title = (msg.iface || "") + " " + (msg.backend || "");
+    }
+    paintApLegend();
+    drawSpec(); drawWf();
+  }
+  function drawBands(ctx, xOf, y0, y1, r) {
+    for (const b of apBands()) {
+      const x0 = xOf(b.start), x1 = xOf(b.end);
+      const w = Math.max(2, x1 - x0);
+      ctx.fillStyle = b.in_use ? "rgba(92,224,138,0.13)" : "rgba(70,199,255,0.10)";
+      ctx.fillRect(x0, y0, w, y1 - y0);
+      ctx.strokeStyle = b.in_use ? "rgba(92,224,138,0.7)" : "rgba(70,199,255,0.55)";
+      ctx.lineWidth = Math.max(1, r);
+      ctx.strokeRect(x0 + 0.5, y0 + 0.5, w, y1 - y0 - 1);
+      ctx.fillStyle = b.in_use ? "#5ce08a" : "#9be7ff";
+      ctx.font = `${10 * r}px Segoe UI`;
+      const text = (b.in_use ? "● " : "") + `ch${b.channel} ${b.ssids[0] || ""}`;
+      ctx.fillText(text, x0 + 4 * r, y0 + 14 * r);
+    }
+    for (const t of tagTracks) {
+      const x0 = xOf(t.start), x1 = xOf(t.end);
+      ctx.fillStyle = "rgba(255,107,107,0.22)";
+      ctx.fillRect(x0, y0, Math.max(4, x1 - x0), y1 - y0);
+      ctx.fillStyle = "#ff8a8a";
+      ctx.font = `bold ${11 * r}px Segoe UI`;
+      ctx.fillText("po relé " + t.peak + " MHz", x0 + 4 * r, y0 + 28 * r);
+    }
+  }
+  function setSmartStatus(t) { $("smartStatus").textContent = t; }
+  function snapshotRoom(points) {
+    const m = new Float32Array(101);
+    m.fill(-127);
+    for (const p of points) {
+      const i = Math.max(0, Math.min(100, (p.freq_mhz | 0) - 2400));
+      if (p.rssi_dbm > m[i]) m[i] = p.rssi_dbm;
+    }
+    return m;
+  }
+  function noteRelayPeaks(points, med) {
+    if (!smartOn || Date.now() > relayWaitUntil || !roomMax) return;
+    const thr = med + 12;
+    for (const p of points) {
+      const mhz = p.freq_mhz | 0;
+      const i = Math.max(0, Math.min(100, mhz - 2400));
+      if (inWifiBand(mhz)) continue;
+      if (p.rssi_dbm < thr) continue;
+      if (p.rssi_dbm < roomMax[i] + 8) continue;
+      relayHits[i]++;
+    }
+    let i = 0;
+    while (i < 101) {
+      if (relayHits[i] < 2) { i++; continue; }
+      let j = i;
+      while (j + 1 < 101 && relayHits[j + 1] >= 2) j++;
+      const width = j - i + 1;
+      if (width <= 5) {
+        let peak = i, best = -127;
+        for (let k = i; k <= j; k++) {
+          const p = points.find(x => x.freq_mhz === 2400 + k);
+          const v = p ? p.rssi_dbm : -127;
+          if (v > best) { best = v; peak = k; }
+        }
+        const mhz = 2400 + peak;
+        if (!tagTracks.some(t => Math.abs(t.peak - mhz) <= 2)) {
+          tagTracks.push({ start: 2400 + i, end: 2400 + j, peak: mhz, rssi: best });
+          setSmartStatus("Nová špička po relé: " + mhz + " MHz (" + best + " dBm). Není to známá Wi-Fi z Pi.");
+          log("kandidát po relé " + mhz + " MHz");
+          paintApLegend();
+        }
+      }
+      i = j + 1;
+    }
+  }
+  function startSmart() {
+    smartOn = true;
+    tagTracks = [];
+    roomMax = latest.length ? snapshotRoom(latest) : new Float32Array(101).fill(-127);
+    relayHits.fill(0);
+    relayWaitUntil = 0;
+    markOn("smartStart", true); markOn("smartStop", false);
+    markOn("scanStart", true); markOn("scanStop", false); markOn("watchStart", false);
+    post("/api/command/scan_start").catch(e => log(e.message));
+    setSmartStatus("Učím se pokoj. Až se ve waterfallu usadí Wi-Fi pásy, dej POWER ON.");
+    paintApLegend();
+  }
+  function stopSmart() {
+    smartOn = false;
+    relayWaitUntil = 0;
+    markOn("smartStart", false); markOn("smartStop", true);
+    setSmartStatus("Analýza stojí. START znovu naučí pokoj.");
+  }
   function axes(c, w, h, r) {
     const l = 50 * r, rr = 12 * r, t = 12 * r, b = 25 * r, x0 = l, x1 = w - rr, y0 = t, y1 = h - b;
     c.strokeStyle = "#213342"; c.fillStyle = "#8ca1b4"; c.font = `${9 * r}px Segoe UI`;
@@ -555,6 +712,7 @@ label.chk input{accent-color:var(--accent);width:16px;height:16px}
     const { w, h, r } = rs(spec);
     S.fillStyle = "#08131d"; S.fillRect(0, 0, w, h);
     const a = axes(S, w, h, r); specAxes = a;
+    drawBands(S, mhz => mhzX(mhz, a.x0, a.x1), a.y0, a.y1, r);
     if (!latest.length) return;
     const y = v => a.y1 - ((Math.max(-110, Math.min(-20, v)) + 110) / 90) * (a.y1 - a.y0);
     if (baseline) {
@@ -581,7 +739,7 @@ label.chk input{accent-color:var(--accent);width:16px;height:16px}
     }
   }
   function drawWf() {
-    const { w, h } = rs(wf);
+    const { w, h, r } = rs(wf);
     W.fillStyle = "#08131d"; W.fillRect(0, 0, w, h);
     const rows = waterRows.slice(-180), rh = h / 180, cw = w / 101;
     rows.forEach((row, i) => {
@@ -591,6 +749,7 @@ label.chk input{accent-color:var(--accent);width:16px;height:16px}
         W.fillRect((p.freq_mhz - 2400) * cw, y, Math.ceil(cw) + 1, Math.ceil(rh) + 1);
       });
     });
+    drawBands(W, mhz => (mhz - 2400) * cw, 0, h, r);
   }
   function drawTrend() {
     const { w, h, r } = rs(tr);
@@ -763,6 +922,11 @@ label.chk input{accent-color:var(--accent);width:16px;height:16px}
     trends.push({ peak: pk?.rssi_dbm ?? -110, median: med });
     if (trends.length > 240) trends.shift();
     regions(m.regions || []);
+    if (smartOn && relayWaitUntil === 0 && roomMax) {
+      const next = snapshotRoom(latest);
+      for (let i = 0; i < 101; i++) if (next[i] > roomMax[i]) roomMax[i] = next[i];
+    }
+    noteRelayPeaks(latest, med);
     drawSpec(); drawWf(); drawTrend(); heat();
   }
   function burst(m) {
@@ -805,6 +969,10 @@ label.chk input{accent-color:var(--accent);width:16px;height:16px}
       $("powerBadge").className = "badge";
       $("powerBadge").title = "Relé není v configu zapnuté, nebo GPIO selhalo";
     }
+    if (s.wifi_ap_count != null && !wifiAps.length) {
+      $("apBadge").textContent = s.wifi_survey_ok === false ? "Wi-Fi scan chyba" : `Wi-Fi ${s.wifi_ap_count} sítí`;
+    }
+    if (s.wifi_survey_error) $("apBadge").title = s.wifi_survey_error;
     paintButtons(s);
     if (s.probe_error) log(s.probe_error);
     if (s.ble_error) log("BLE " + s.ble_error);
@@ -828,6 +996,8 @@ label.chk input{accent-color:var(--accent);width:16px;height:16px}
       markOn("powerOnLab", s.relay_power_on);
       markOn("powerOffLab", s.relay_power_on === false);
     }
+    markOn("smartStart", smartOn);
+    markOn("smartStop", !smartOn);
     markOn("csvStart", s.recording);
     markOn("csvStop", s.recording === false);
     markOn("expStart", s.experiment_recording);
@@ -1060,13 +1230,13 @@ label.chk input{accent-color:var(--accent);width:16px;height:16px}
       document.querySelectorAll(".chip").forEach(x => x.classList.toggle("activechip", x.dataset.chip === ""));
     }
     const active = document.querySelector(".tab.active");
-    if (mode === "easy" && active && (active.id === "devicesTab" || active.id === "pcapTab")) {
+    if (mode === "easy" && active && (active.id === "devicesTab" || active.id === "pcapTab" || active.id === "peaksTab" || active.id === "captureTab")) {
       gotoTab("spectrumTab");
     }
     setTimeout(() => { drawSpec(); drawWf(); drawTrend(); drawBursts(); }, 20);
   }
   function gotoTab(id) {
-    if (uiMode() === "easy" && (id === "devicesTab" || id === "pcapTab")) id = "spectrumTab";
+    if (uiMode() === "easy" && (id === "devicesTab" || id === "pcapTab" || id === "peaksTab" || id === "captureTab")) id = "spectrumTab";
     document.querySelectorAll(".tabbtn").forEach(x => x.classList.toggle("active", x.dataset.tab === id));
     document.querySelectorAll(".tab").forEach(x => x.classList.toggle("active", x.id === id));
     if (id === "captureTab") sessions().then(loadEvents);
@@ -1083,6 +1253,7 @@ label.chk input{accent-color:var(--accent);width:16px;height:16px}
       const m = JSON.parse(e.data);
       if (m.type === "state") onState(m.state);
       else if (m.type === "sweep") sweep(m);
+      else if (m.type === "wifi_aps") applyWifiAps(m);
       else if (m.type === "burst") burst(m);
       else if (m.type === "history") { waterRows = []; trends = []; m.sweeps.forEach(x => sweep(x)); }
       else if (m.type === "log") log(m.line);
@@ -1259,6 +1430,18 @@ label.chk input{accent-color:var(--accent);width:16px;height:16px}
     markOn("powerOnLab", on); markOn("powerOffLab", !on);
     $("powerBadge").textContent = on ? "Štítek ON" : "Štítek OFF";
     $("powerBadge").className = "badge " + (on ? "ok" : "warn");
+    if (smartOn && on) {
+      if (latest.length) roomMax = snapshotRoom(latest);
+      relayHits.fill(0);
+      relayWaitUntil = Date.now() + 12000;
+      setSmartStatus("POWER ON — 12 s čekám na novou špičku mimo Wi-Fi kanály z Pi.");
+    }
+    if (smartOn && !on) {
+      relayWaitUntil = 0;
+      setSmartStatus(tagTracks.length
+        ? ("Označeno po relé: " + tagTracks.map(t => t.peak + " MHz").join(", ") + ". POWER OFF.")
+        : "POWER OFF. Nic nového mimo Wi-Fi. Zkus znovu, nebo štítek v 2,4 GHz nevidíme.");
+    }
     return post("/api/relay/" + (on ? "on" : "off"))
       .then(() => log(on ? "POWER ON" : "POWER OFF"))
       .catch(e => log(e.message));
@@ -1267,11 +1450,15 @@ label.chk input{accent-color:var(--accent);width:16px;height:16px}
   $("powerOff").onclick = () => setPower(false);
   $("powerOnLab").onclick = () => setPower(true);
   $("powerOffLab").onclick = () => setPower(false);
+  $("smartStart").onclick = startSmart;
+  $("smartStop").onclick = stopSmart;
 
   setInterval(() => { $("mAge").textContent = lastData ? ((Date.now() - lastData) / 1000).toFixed(1) + " s" : "—"; }, 250);
   window.onresize = () => { drawSpec(); drawWf(); drawTrend(); drawBursts(); };
   applyUiMode(uiMode());
   paintRegions();
+  paintApLegend();
+  fetch("/api/wifi/aps").then(r => r.json()).then(applyWifiAps).catch(() => {});
   if (ignoreWifi) post("/api/settings/runtime", { ignore_wifi_like: true }).catch(() => {});
   settings(); sessions(); connect();
   drawSpec(); drawWf(); drawTrend(); drawBursts();

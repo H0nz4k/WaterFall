@@ -31,12 +31,18 @@
     "scan_mode": "active",
     "allow_active_fallback": false
   },
-  "wifi_monitor": {
-    "enabled": false,
-    "interface": "wlan1mon",
-    "note": "Vyžaduje samostatné Wi-Fi rozhraní v monitor mode a CAP_NET_RAW/root.",
-    "auto_start": false
-  },
+    "wifi_monitor": {
+        "enabled": false,
+        "interface": "wlan1mon",
+        "note": "Vyžaduje samostatné Wi-Fi rozhraní v monitor mode a CAP_NET_RAW/root. Ne wlan0 — spadne SSH.",
+        "auto_start": false
+    },
+    "wifi_survey": {
+        "enabled": true,
+        "interface": "auto",
+        "interval_s": 25,
+        "note": "Běžný AP scan (nmcli/iw) na STA Wi-Fi. SSID+kanál se páruje se spektrem. Není to monitor mode."
+    },
   "nfc_reader": {
     "enabled": true,
     "serial_port": "/dev/serial/by-id/usb-OEM_TWN4_...-if00",

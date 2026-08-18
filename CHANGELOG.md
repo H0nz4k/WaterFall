@@ -1,7 +1,13 @@
 # WaterFall CHANGELOG
 
 Formát: `X.Y.Z — YYYY-MM-DD`. Aktuální verze je v [`VERSION`](VERSION).
-Git tag odpovídá verzi (`v0.4.14`).
+Git tag odpovídá verzi (`v0.4.15`).
+
+## 0.4.15 — 2026-08-18
+
+- Raspberry dělá běžný Wi-Fi scan (nmcli/iw, **ne** monitor mode na wlan0);
+- SSID + kanál se kreslí do spektra a waterfallu a páruje se s energií z donglu;
+- Easy: START / relé / grafy; po POWER ON se označí nová špička mimo ty sítě.
 
 ## 0.4.14 — 2026-08-18
 

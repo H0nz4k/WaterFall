@@ -34,10 +34,11 @@ from .nfc_watch import NfcWatcher
 from .pcap_tools import PcapInspector
 from .relay import RelayController
 from .rf_analysis import detect_regions
+from .wifi_survey import WifiSurveyWatcher
 from .wifi_watch import WifiMonitorWatcher
 
 
-VERSION = "0.4.14"
+VERSION = "0.4.15"
 log = logging.getLogger("waterfall")
 BASE_DIR = Path(__file__).resolve().parent.parent
 STATIC_DIR = BASE_DIR / "app" / "static"
@@ -83,6 +84,10 @@ class State:
     ble_error: str = ""
     wifi_connected: bool = False
     wifi_error: str = ""
+    wifi_survey_ok: bool = False
+    wifi_survey_error: str = ""
+    wifi_survey_iface: str = ""
+    wifi_ap_count: int = 0
     relay_available: bool = False
     relay_power_on: bool = False
     sweep_count: int = 0
@@ -768,6 +773,16 @@ probe = MockWorker() if CONFIG.get("mock_mode", False) else ProbeWorker()
 nfc: NfcWatcher | None = None
 ble: BleWatcher | None = None
 wifi: WifiMonitorWatcher | None = None
+wifi_survey: WifiSurveyWatcher | None = None
+
+
+def on_wifi_survey(payload: dict[str, Any]):
+    state.wifi_survey_ok = bool(payload.get("ok"))
+    state.wifi_survey_error = str(payload.get("error") or "")
+    state.wifi_survey_iface = str(payload.get("iface") or "")
+    state.wifi_ap_count = len(payload.get("aps") or [])
+    hub.send(payload)
+    broadcast_state()
 
 
 def start_ble_watcher() -> tuple[bool, str]:
@@ -847,7 +862,7 @@ app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 @app.on_event("startup")
 async def startup():
-    global nfc
+    global nfc, wifi_survey
     hub.loop = asyncio.get_running_loop()
     probe.start()
 
@@ -868,6 +883,16 @@ async def startup():
     if wcfg.get("enabled", False) and wcfg.get("auto_start", False):
         start_wifi_watcher()
 
+    scfg = CONFIG.get("wifi_survey", {})
+    if scfg.get("enabled", True):
+        wifi_survey = WifiSurveyWatcher(
+            emit=on_wifi_survey,
+            interval_s=float(scfg.get("interval_s", 25)),
+            interface=str(scfg.get("interface", "auto")),
+            mock=bool(CONFIG.get("mock_mode", False)),
+        )
+        wifi_survey.start()
+
     emit_marker("SERVER_START", f"WaterFall v{VERSION}")
 
 
@@ -877,6 +902,7 @@ async def shutdown():
     if nfc: nfc.stop_event.set()
     if ble: ble.stop_event.set()
     if wifi: wifi.stop_event.set()
+    if wifi_survey: wifi_survey.stop_event.set()
     csv_writer.stop()
     events.stop()
     if capture_store.active_session_id is not None:
@@ -912,6 +938,7 @@ async def get_settings():
         "rf_probe": CONFIG.get("rf_probe", {}),
         "ble_observer": CONFIG.get("ble_observer", {}),
         "wifi_monitor": CONFIG.get("wifi_monitor", {}),
+        "wifi_survey": CONFIG.get("wifi_survey", {}),
         "pcap": {**CONFIG.get("pcap", {}), **pcap_inspector.capabilities()},
         "limits": {"energy_identity": "RSSI samo o sobě neurčuje zařízení ani paket."},
     }
@@ -997,6 +1024,13 @@ async def ble_start():
 async def ble_stop():
     ok, message = stop_ble_watcher()
     return {"ok": ok, "message": message}
+
+
+@app.get("/api/wifi/aps")
+async def wifi_aps():
+    if wifi_survey is None:
+        return {"ok": False, "error": "wifi survey neběží", "aps": []}
+    return wifi_survey.snapshot()
 
 
 @app.post("/api/wifi/start")
@@ -1283,6 +1317,8 @@ async def relay_action(action: str):
 async def ws_endpoint(ws: WebSocket):
     await hub.connect(ws)
     await ws.send_json({"type": "state", "state": asdict(state)})
+    if wifi_survey is not None:
+        await ws.send_json({"type": "wifi_aps", **wifi_survey.snapshot()})
     with history_lock:
         if history:
             await ws.send_json({"type": "history", "sweeps": list(history)})

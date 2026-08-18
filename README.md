@@ -2,7 +2,7 @@
 
 Webový RF capture / analyzer pro výzkum **OpenVusion** (SES-imagotag VUSION a okolní 2,4 GHz pásmo).
 
-**Verze:** `0.4.14` · soubor [`VERSION`](VERSION) · historie v [`CHANGELOG.md`](CHANGELOG.md)  
+**Verze:** `0.4.15` · soubor [`VERSION`](VERSION) · historie v [`CHANGELOG.md`](CHANGELOG.md)  
 **Sonda:** [OpenVusion RF Probe](https://github.com/H0nz4k/OpenVusion_RF_Probe) 0.7.2 na nRF52840 Dongle  
 **Host:** Raspberry Pi / Linux · web na portu `8088`
 
@@ -90,7 +90,7 @@ python run_server.py
 
 - aktuální číslo je v [`VERSION`](VERSION) a v `app/main.py` (`VERSION`)
 - každá viditelná změna patří do [`CHANGELOG.md`](CHANGELOG.md) nahoře, ve formátu `X.Y.Z — YYYY-MM-DD`
-- tag v gitu: `v0.4.14`
+- tag v gitu: `v0.4.15`
 
 | Část | Význam |
 |---|---|
@@ -98,7 +98,7 @@ python run_server.py
 | minor | nová funkce (Špičky, Capture, PCAP…) |
 | patch | UI, opravy, dokumentace |
 
-Firmware sondy se verzuje zvlášť. WaterFall 0.4.14 očekává Probe **0.7.2** (`WATERFALL_COMPAT=0.4.1`).
+Firmware sondy se verzuje zvlášť. WaterFall 0.4.15 očekává Probe **0.7.2** (`WATERFALL_COMPAT=0.4.1`).
 
 ## Config — důležité
 
@@ -106,7 +106,8 @@ V `config.example.json` nech sériová čísla a UID prázdné. Do ostrého `con
 
 - `rf_probe.serial_number` jen pokud chceš konkrétní dongle
 - `nfc_reader.serial_port` a `expected_uid` podle TWN4
-- `wifi_monitor.interface` jen u samostatného monitor-mode adaptéru, ne u management Wi-Fi
+- `wifi_survey` (výchozí zapnuto) — běžný AP scan na Wi-Fi Pi, párování SSID/kanálu se spektrem; **nesmíš** dát `wlan0` do monitor mode
+- `wifi_monitor.interface` jen u **samostatného** monitor-mode adaptéru, ne u management Wi-Fi
 
 ## Limity
 

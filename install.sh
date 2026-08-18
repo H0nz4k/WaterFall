@@ -17,7 +17,7 @@ if [[ "${1:-}" == "--update" ]]; then
   MODE="update"
 fi
 
-VERSION="0.4.14"
+VERSION="0.4.15"
 if [[ -f "$SOURCE_DIR/VERSION" ]]; then
   VERSION="$(tr -d '[:space:]' < "$SOURCE_DIR/VERSION")"
 fi
@@ -60,7 +60,7 @@ ensure_user() {
     usermod -aG sudo "$SERVICE_USER" || true
   fi
   local grp
-  for grp in dialout gpio bluetooth plugdev spi i2c video input wireshark; do
+  for grp in dialout gpio bluetooth plugdev spi i2c video input wireshark netdev; do
     if getent group "$grp" >/dev/null; then
       usermod -aG "$grp" "$SERVICE_USER"
     fi
@@ -224,7 +224,7 @@ Wants=network.target
 Type=simple
 User=${SERVICE_USER}
 Group=${SERVICE_USER}
-SupplementaryGroups=dialout gpio bluetooth plugdev spi i2c
+SupplementaryGroups=dialout gpio bluetooth plugdev spi i2c netdev
 WorkingDirectory=${APP_DIR}
 Environment=WATERFALL_CONFIG=${APP_DIR}/config.json
 ${factory_line}
